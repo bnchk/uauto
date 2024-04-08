@@ -1,6 +1,6 @@
 #!/bin/bash
 #===============
-# ENCS MONITOR - light relay notifications via push message - v0.2
+# ENCS MONITOR - light relay notifications via push message
 #===============
 #    - sent via pushover.net app (free trial/$5usd forever /device)
 #    - create specific api key for encoins(+optionally load logo thumbnail)
@@ -18,6 +18,10 @@
 #nodename=yournodename
 #servicename=xxxx.service
 
+#--------
+# HISTORY
+# v0.2 - beta
+# v0.3 - fix package missing checks bug
 
 #-------------
 # PUSH MESSAGE
@@ -63,8 +67,8 @@ encs_repo_url="https://api.github.com/repos/encryptedcoins/encoins-relay/release
 [ ! -d ${log_folder} ] && mkdir -p ${log_folder}
 echo "`date +"%Y%m%d_%H%M:%S"` - ENCOINS MONITOR INITIALISING" >> $log_file
 [ ! -f ${secrets_file} ] &&  echo "`date +"%Y%m%d_%H%M:%S"` - CANNOT FIND SECRETS: ${secrets_file}" >> $log_file && exit
-[ "$(apt list curl 2>&1 | grep installed | wc -l | awk '{ print $1 }')" != "1" ] && "`date +"%Y%m%d_%H%M:%S"` - CANNOT RUN WITHOUT CURL PACKAGE" && exit
-[ "$(apt list jq 2>&1 | grep installed | wc -l | awk '{ print $1 }')" != "1" ] && "`date +"%Y%m%d_%H%M:%S"` - CANNOT RUN WITHOUT JQ PACKAGE" && exit
+[ "$(apt list curl --installed 2>&1 | grep curl | wc -l | awk '{ print $1 }')" != "1" ] && echo "`date +"%Y%m%d_%H%M:%S"` - CANNOT RUN WITHOUT CURL PACKAGE"  >> $log_file && exit
+[ "$(apt list jq   --installed 2>&1 | grep jq   | wc -l | awk '{ print $1 }')" != "1" ] && echo "`date +"%Y%m%d_%H%M:%S"` - CANNOT RUN WITHOUT JQ PACKAGE"    >> $log_file && exit
 # Load secrets
 apitoken="$(grep apitoken $secrets_file | awk -F\= '{ print $2}')"
 usrtoken="$(grep usrtoken $secrets_file | awk -F\= '{ print $2}')"
@@ -123,3 +127,4 @@ while true; do
     fi
     sleep 300
 done
+
