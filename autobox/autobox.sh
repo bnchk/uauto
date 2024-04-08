@@ -1,22 +1,35 @@
 #!/bin/bash
 #----------
-# AUTOBOX - system self maintainer - for systemd to call
+# AUTOBOX - system self maintainer - for systemd to call (or cron)
 #----------
 
 # Secrets to hide
-apitoken="azzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
-usrtoken="uzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
-service="iag-cli.service"
+apitoken="azzzzzzzzzzzzzzzzzzzzzzzzzzzzz"   #monitoring
+usrtoken="uzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"   #user
+service=""
+
+#========
+# HISTORY
+#========
+# v0.1a - beta testig triggers
+# v0.1b - pilot running iagon (with service) maintaining box ok
+# v0.1  - no service capability - was ok, just added message into HELP when cant stop service
+#       - check if running already and message + exit if so
 
 #======
 # NOTES
 #======
-# - Security updates are automatically via unattendend-upgrades package once a day, sometimes without needing a reboot
-#     but when it does, the box isn't rebooted just requires one at some point.  That is what this script does
+# - Security updates are automatically via unattendend-upgrades package once a day at random time, usually without needing a reboot.
+# - But when it does need a reboot, this script looks after it.
 
 #=======================
 # CONFIGURATION REQUIRED
 #=======================
+# - Copy this script in:
+#      sudo mkdir -p /opt/my_scripts
+#      sudo touch /opt/my_scripts/autobox.sh
+#      sudo chmod 700 /opt/my_scripts/autobox.sh
+#        and copy this into it..
 # - To reboot without DOS style pop-up prompts stopping process needs config changed:
 #	  sudo vim /etc/needrestart/needrestart.conf
 #		- Outdated Daemons warning (UNcomment + change i->a):
@@ -27,12 +40,9 @@ service="iag-cli.service"
 # - To run sudo without password storage or promptingm add whole script to sudoers so everything within it is run with sudo
 #      use command:  sudo visudo  # and add line at end:
 #                    dog ALL=(ALL) NOPASSWD: /opt/my_scripts/autobox.sh
-# - schedule once a day, run at 8:30am for now:  
+# - schedule once a day, run at 8:30am for now, and at reboot:  
 #          crontab -e //  30 8 * * * sudo /opt/my_scripts/autobox.sh
-
-#========
-# HISTORY
-# v0.1a - test
+#                         @reboot sudo /opt/my_scripts/autobox.sh
 
 #========================
 # FUNCTION - Push Message - send message based on parameters passed
@@ -65,7 +75,15 @@ f_checkupdates() {
 # MAIN - MAIN - MAIN 
 #===================
 max_days_without_reboot=21  # max number of days to let standard updates go without applying+updating
-f_checkupdates  #load variables with update counts
+
+if [ "$(pidof -o %PPID -x $(basename $0))" != "" ]; then 
+   # already running!! Not good.  Maybe scheduled overlappy with reboot version.  Very unlikely, but message+exit
+   pushmessage="HELP LIKELY\nNEEDED!!\n$(basename $0)\nRUNNING TWICE\nEXITED 2ND JOB\n Box: `uname -n`\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}"
+   exit 1   
+fi
+
+f_checkupdates  #load variables with different update/patch counts
 
 # Days since last reboot: https://stackoverflow.com/questions/28353409/bash-format-uptime-to-show-days-hours-minutes
 rebooted_days_ago_q=`uptime | awk -F'( |,|:)+' '{d=h=m=0; if ($7=="min") m=$6; else {if ($7~/^day/) {d=$6;h=$8;m=$9} else {h=$6;m=$7}}} {print d+0}'`
@@ -107,7 +125,7 @@ else
    else
       #----
 	  # EEK - Failed to stop service - send for help
-      pushmessage="Box: `uname -n`\nHELP ME - NODE\n UNSTOPPABLE\nUser:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
+      pushmessage="Box: `uname -n`\nHELP ME - NODE\nUNSTOPPABLE\nService: ${service}\n\nUser:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
       f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}"
    fi
 fi
