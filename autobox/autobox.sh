@@ -20,17 +20,16 @@
 #        service="whateverit.service"                #optional service that is to be stopped
 # - To reboot without DOS style pop-up prompts stopping process needs config changed:
 #     sudo vim /etc/needrestart/needrestart.conf
-#      - Outdated Daemons warning (UNcomment + change i->a):
-#         - #$nrconf{restart} = 'i';  ==>  
-#         - $nrconf{restart} = 'a';
-#      - Kernel updates notification - UNcomment this line:   
-#         - $nrconf{kernelhints} = -1;
+#      - Outdated Daemons warning (UNcomment + change i->a) so #$nrconf{restart} = 'i';  ==> $nrconf{restart} = 'a';
+#         - sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+#      - Kernel updates notification - UNcomment this line - $nrconf{kernelhints} = -1;
+#         - sudo sed -i "/#\$nrconf{kernelhints} = -1;/s/.*/\$nrconf{kernelhints} = -1;/" /etc/needrestart/needrestart.conf
 # - To run sudo without password storage or promptingm add whole script to sudoers so everything within it is run with sudo
 #      use command:  sudo visudo  # and add line at end:
 #                    dog ALL=(ALL) NOPASSWD: /opt/my_scripts/autobox/autobox.sh
 # - schedule once a day, run at 8:30am for now, and at reboot:  
 #          crontab -e //  30 8 * * * sudo /opt/my_scripts/autobox/autobox.sh
-#                         @reboot sudo /opt/my_scripts/autobox/autobox.sh
+#                         #@reboot sudo /opt/my_scripts/autobox/autobox.sh
 
 
 #======
@@ -38,19 +37,18 @@
 #======
 # - Security updates are automatically via unattendend-upgrades package once a day at random time, usually without needing a reboot.
 # - But when it does need a reboot, this script looks after it.
-
+# - TODO maybe - highpriority packages eg tailscale update individually (if reboot unneeded), but then painful as maybe this triggers reboot required :-(
 
 #========
 # HISTORY
 #========
-# v0.1a - beta testig triggers
-# v0.1b - pilot running iagon (with service) maintaining box ok
 # v0.1  - no service capability - was ok, just added message into HELP when cant stop service
 #        - check if running already and message + exit if so
 # v0.2  - changed install folder from /opt/my_scripts/ to /opt/my_scripts/autobox/
 #        - remove keys into secrets file in run folder + parse these secrets
 #        - remove pre reboot warning message as has had 100% ok for long enough to assume it wont hang for unknown reasons
 #        - clearer message headings like AUTOBOX OK etc
+# v0.3 - testing inline sed edits for /etc/needrestart/needrestart.conf
 
 
 #========================
