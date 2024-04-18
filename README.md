@@ -1,5 +1,5 @@
-# Ubuntu Automation Suite<br>
-Intended for simple boxes to run entirely on their own, providing minimal updates - just enough to let you know it is OK, plus any issues/what is done to resolve.  Written for simple setups not running prometheus/grafana and wanting machine to ping via push message if there was anything that needed attention.<br>
+# Ubuntu Automation - simple scripts<br>
+Intended for basic boxes to run entirely on their own, providing minimal updates - just enough to let you know it is OK, plus any issues/what is done to resolve.  Written for simple setups not running prometheus/grafana and wanting machine to ping via push message if there was anything that needed attention.<br>
 <br>
 ## Scripts cover:<br>
 * logon notifications<br>
