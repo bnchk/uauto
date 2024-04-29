@@ -1,5 +1,8 @@
 # Ubuntu Automation - simple scripts<br>
-Intended for basic boxes to run entirely on their own, providing minimal updates - just enough to let you know it is OK, plus any issues/what is done to resolve.  Written for simple setups not running prometheus/grafana and wanting machine to ping via push message if there was anything that needed attention.<br>
+Very much a use at your own risk.  Intention is to learn how to automate basic boxes to run entirely on their own, then work on to more complex ones.
+Started with Cardano Iagon CLI box automation, then Encoins relay as practice with aim being to see if it is possible for World Mobile Earth node.
+The intent is that an Ubuntu box can run on its own providing minimal updates via push message - just enough to let you know it is OK, plus any issues/what is done to resolve.
+Am not sure at this point how it would work with prometheus/grafana based setups, but suspect this would not be necessary.<br>
 <br>
 ## Scripts cover:<br>
 * logon notifications<br>
@@ -29,4 +32,4 @@ Intended for basic boxes to run entirely on their own, providing minimal updates
 <br>
 <br>
 <br>
-Coded for self but any feedback/suggestions really appreciated :-)
+Coded for self as a learning lesson, but any feedback/suggestions really appreciated :-)
