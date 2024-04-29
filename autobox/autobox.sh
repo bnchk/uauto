@@ -9,6 +9,7 @@
 # - Security updates automatically applied via unattendend-upgrades package once a day at random time, usually without needing a reboot.
 # - But when it does need a reboot, this script looks after it.
 # - If tailscale can be separated and updated individually without requiring reboot attempt is made to do so.
+# - openssh-server + grub2 updates are performed individually (appears only way to suppress pop-up confirmations)
 
 
 #=======================
@@ -48,7 +49,8 @@
 #========
 # HISTORY
 #========
-# v0.1 - no service capability - was ok, just added message into HELP when cant stop service
+# v0.1 - pilot test/learn mode, no service capability - was ok, just added message into HELP when cant stop service
+#      - run for months to get feel for what unattended updates is doing
 #      - check if running already and message + exit if so
 # v0.2 - changed install folder from /opt/my_scripts/ to /opt/my_scripts/autobox/
 #      - remove keys into secrets file in run folder + parse these secrets
@@ -61,6 +63,14 @@
 #        - on iOS -2=no popup/vibrate/watch but lists in history=>rely on monitors to know box is up (may change later)
 #      - add tailscale version number into standard message after update 0/1 status
 #      - ensure tailscale optional, boxes without it won't fail
+# v0.5 - BUGFIX for dpkg (package manager) getting locked out on popup confirmation windows by openssh-server (and can see grub2 will do this also)
+#        - openssh-server updates run individually to suppress confirmations such as "use older config file" style confirmations
+#          noting debian dpkg config method can see will do nothing on Ubuntu despite documentation saying it should suppress confirmations.
+#        - grub-pc will exit with warning - it is too dangerous to automate this until it is understood more.  Maybe it will be OK
+#          but halt all automation when this is detected so it can be manually analysed
+#      - add check for dpkg (package manager) locked out, plus needs "dpkg --configure -a" run manually to finish confirmations
+
+# TODO - add check for when automated updates are actually running and snoose this script for a period (maybe), has been no issue so far but
 
 
 #========================
@@ -89,6 +99,8 @@ f_checkupdates() {
    standard_dist_q=$(apt-get -s dist-upgrade -V 2>&1 | grep "^Inst" | grep -v "security" | wc -l | awk '{ print $1 }')
    standard_stnd_q=$(apt-get -s upgrade -V 2>&1 | grep "^Inst" | grep -v "security" | wc -l | awk '{ print $1 }')
    tailscale_upd_q=$(apt-get -s upgrade -V 2>&1 | grep "^Inst" | grep "tailscale" | wc -l | awk '{ print $1 }')
+   openssh_upd_q=$(apt-get -s upgrade -V 2>&1 | grep "^Inst" | grep "openssh-server" | wc -l | awk '{ print $1 }')
+   grub_upd_q=$(apt-get -s upgrade -V 2>&1 | grep "^Inst" | grep "grub-pc" | wc -l | awk '{ print $1 }')
    [ -f /var/run/reboot-required ] && reboot_reqd_f=1 || reboot_reqd_f=0
    
    # Days since last reboot: https://stackoverflow.com/questions/28353409/bash-format-uptime-to-show-days-hours-minutes
@@ -118,9 +130,17 @@ service="$(cat $secrets_file  | grep -v ^# | grep service  | awk -F\= '{ print $
 [ -z $usrtoken ] && exit 
 [ -z $service ]  && service="ok-just-updates"
 
+# Is package manager locked out?  (dpkg maybe stuck on prompt window forever = package installed, but not configured = cannot recover)
+if [ $(dpkg -l | grep -E '^[A-Za-z][A-Z]' | wc -l) -ne 0 ]; then 
+   dpkg_failed_packages=$(dpkg -l | grep -E '^[A-Za-z][A-Z]' | awk '{ print $2 }')
+   pushmessage="HELP NEEDED!\nBox: `uname -n`\nDPKG LOCKED FOR:\n${dpkg_failed_packages}\nTry: dpkg --configure -a\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 1   
+fi
+
 # Is script already running?
 if [ "$(pidof -o %PPID -x $(basename $0))" != "" ]; then 
-   pushmessage="HELP LIKELY\nNEEDED!!\n$(basename $0)\nRUNNING TWICE\nEXITED 2ND JOB\n Box: `uname -n`\n User:$(whoami)\n Date: `date`"
+   pushmessage="HELP NEEDED!\nBox: `uname -n`\n$(basename $0)\nRUNNING TWICE\nEXITED 2ND JOB\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
@@ -128,12 +148,25 @@ fi
 # get update status
 f_checkupdates
 
-# Tailscale only?
-# If other triggers required fall though + update everything, but check first for simple tailscale only option
-# then recheck this didn't cause reboot flag itself
-[ $(dpkg -s tailscale | grep -i version | wc -l) -eq 1 ] && tailscale_curr_v="$(tailscale version | head -1 | awk '{ print $1 }')" || tailscale_curr_v="n/a"
+#---------------------------
+# INDIVIDUAL PACKAGE UPDATES - tailscale, openssh-server, grub-pc
+#---------------------------
+# If other triggers required fall though + update everything, but check first for high priority/isolated updates
+# Take care these processes don't individually cause reboot flag scenario post their updating
+
+# OPENSSH-SERVER
+if [ $openssh_upd_q -ne 0 ]; then
+   pushmessage="OPENSSH UPDATE!\nBox: `uname -n`\nWARNING-BETA CODE\nMAY LOCK UP\nPACKAGE MANAGER\nDPKG\nSTARTING NOW\n Date: `date`"   
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   UCF_FORCE_CONFFOLD=1 sudo apt-get install -y openssh-server >/dev/null 2>&1
+   pushmessage="OPENSSH UPDATE!\nBox: `uname -n`\nCOMPLETED\n Date: `date`"   
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+fi
+
+# TAILSCALE
+[ $(dpkg -s tailscale | grep -i version | wc -l) -eq 1 ] && tailscale_curr_v="$(tailscale version | head -1 | awk '{ print $1 }')" || tailscale_curr_v=" n/a"
 if [ \( $rebooted_days_ago_q -lt $max_days_without_reboot \) -a \( $reboot_reqd_f -eq 0 \) -a \( $tailscale_upd_q -ne 0 \) ]; then
-   # update tailscale only
+   # update tailscale only if nothing else
    sudo apt install tailscale -y >/dev/null 2>&1 && sleep 2
    tailscale_post_v=$(tailscale version | head -1 | awk '{ print $1 }')
    pushmessage="TAILSCALE UPDT\nBox: `uname -n`\nUser:$(whoami)\nv${tailscale_curr_v}->v${tailscale_post_v}\n Date: `date`"   
@@ -142,9 +175,15 @@ if [ \( $rebooted_days_ago_q -lt $max_days_without_reboot \) -a \( $reboot_reqd_
    tailscale_curr_v=${tailscale_post_v}
 fi
 
+# GRUB-PC - exit for now, this is really dangerous to automate..
+if [ $grub_upd_q -ne 0 ]; then
+   pushmessage="!EEK GRUB UPDATE!\nBox: `uname -n`\nCANNOT DO-QUITTING\nTOO RISKY\nANALYSE SCENARIO\nIF IT OCCURS\n Date: `date`"   
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 5
+fi
 
-# Trigger reboot:  required_f -o- tailscale -o- gt_daycounter+updates
-if [ \( $total_update_q -gt 0 -a $rebooted_days_ago_q -ge $max_days_without_reboot \) -o \( $reboot_reqd_f -eq 1 \) -o \( $tailscale_upd_q -ne 0 \) ]; then
+# Trigger reboot:  required_f -o- tailscale -o- gt_daycounter+updates -o- openssh-server (but not grub yet till options seen/checked)
+if [ \( $total_update_q -gt 0 -a $rebooted_days_ago_q -ge $max_days_without_reboot \) -o \( $reboot_reqd_f -eq 1 \) -o \( $tailscale_upd_q -ne 0 \) -o \( $openssh_upd_q -ne 0 \) ]; then
    trigger_updates_f=1
 else
    trigger_updates_f=0
