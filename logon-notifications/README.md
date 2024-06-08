@@ -8,7 +8,7 @@ Receive push message whenever there is a connection to Ubuntu.<br>
 ### 2:  Create pushover.net application<br>
 * Create application under account eg WorldMobile, Iagon, Encoins, logons etc (however you want to group messages by in app)
 * Second application api-key is used with above user api key in script below - so 2 keys.<br>
-* Optional: add thumbnail image so message embed logo for application - eg:<br><br>
+* Optional: add thumbnail image so message embed logo for application - [sample thumbnails](assets/) eg:<br><br>
 ![wm](./assets/world-mobile-logo.png) <br><br>
 ## NOTIFICATION SCRIPT + LOGON TRIGGERS
 ### 1: Install curl (if not already)
