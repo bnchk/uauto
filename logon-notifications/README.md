@@ -42,11 +42,10 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
    sudo tee /opt/my_scripts/login_notification.sh > /dev/null <<EOF
    #!/bin/bash
    # NOTIFICATION SCRIPT FOR TRIGGERING PUSH MESSAGE ON LOGIN EVENTS
-   # Make sure to place userkey + apikey in the strings below
-   # We want to trigger the script only when the SSH session starts.
-   # To be notified also when session closes, you can watch for the "close_session" value.
-   # NB have set to always succeed via true but have gaps in experience here with this vs PAM required or optional
-   #  Will be loading as PAM optional as I dont think logic and output will fail
+   # Make sure to place userkey + apikey in the strings below at some point
+   # This triggers on sessions starting, but can also use "close_session" for disconnections.
+   # NB have set to always succeed via "true" but have gaps in experience here with this vs PAM required or optional
+   #  Loading as PAM optional as lower risk for logon delaying waiting for script, also user curl timeout for this reason
    if [[ "$PAM_TYPE" == "open_session" ]]; then
    		  # Is this console or ssh?  Is triggered from both
    		  if   [ "$PAM_SERVICE" == "sshd" ];         then LoginType="SSH"
