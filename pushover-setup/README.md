@@ -13,5 +13,5 @@ Push message functionality is enabled via account using app from [http://pushove
 * Applications are groupings for messages coming from the same system or for same reason - eg LogonNotifications, Monitoring, Node group, etc
 * Go to "Create Application" under your user account or [http://pushover.net/apps/build](https://pushover.net/apps/build)
 * Give the application a name, plus is recommended (but optional) to add thumbnail image
-* Application will embeded logo at start + look visually different - any small square icon is finesome I've used are [sample thumbnails](assets/) 
+* Application will embeded logo at start + look visually different - any small square icon is fine, some I've used are [sample thumbnails](assets/) 
 * You will receive a second `application api-key` to be used in conjunction with above `user api key` in scripts - so 2 keys total
