@@ -1,14 +1,21 @@
 #! /bin/sh
 #
+# UPDATED VERSION 0.15 -> 0.18 FROM Calomel.org website, then converted to use Pushover push notifications instead of email
+# NB UPDATE PUSHOVER USER and APP API Keys to be your ones
+#
 # Calomel.org
 #     https://calomel.org/zfs_health_check_script.html
 #     FreeBSD ZFS Health Check script
 #     zfs_health.sh @ Version 0.18
 
-# Check health of ZFS volumes and drives. On any faults send email.
+# Check health of ZFS volumes and drives. On any faults send push notification.
+
+# Pushover api keys (update with your ones)
+pushover_user_key="userkeyuserkeyuserkeyuserkeyuserkeyuserkey"
+pushover_app_key="appkeyappkeyappkeyappkeyappkeyappkeyappkey"
 
 
-# 99 problems but ZFS aint one
+# 999 problems but ZFS aint one
 problems=0
 
 
@@ -117,12 +124,22 @@ if [ ${problems} -eq 0 ]; then
    done
 fi
 
-
+# EMAIL NOTIFICATIONS - LEFT BUT COMMENTED OUT
 # Email - On any problems send email with drive status information and
 # capacities including a helpful subject line. Also use logger to write the
 # email subject to the local logs. This is also the place you may want to put
 # any other notifications like playing a sound file, beeping the internal 
 # speaker, paging someone or updating Nagios or even BigBrother.
+#
+#if [ "$problems" -ne 0 ]; then
+#  printf '%s\n' "$emailSubject" "" "`/sbin/zpool list`" "" "`/sbin/zpool status`" | /usr/bin/mail -s "$emailSubject" root@localhost
+#  logger $emailSubject
+#fi
+
+
+# PUSH NOTIFICATIONS
+# Push messages to phone - there are many providers, this one is for pushover.net
+# Setup an account and get user key and app key
 
 if [ "$problems" -ne 0 ]; then
   printf '%s\n' "$emailSubject" "" "`/sbin/zpool list`" "" "`/sbin/zpool status`" | /usr/bin/mail -s "$emailSubject" root@localhost
