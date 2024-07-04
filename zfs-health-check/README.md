@@ -19,4 +19,4 @@ Always make sure the permissions for the scheduled script are such that if runni
 eg `chmod 700 /opt/my_scripts/zfs_health_check.sh`<br><br>
 Messages are designed to fit first line/summary on watch face.<br>
 Following is full message in pushover app when half of raid1 mirror failed in Proxmox server called poxy1:<br><br>
-![example](zfs-health-check/assets/zfs_fail_msg.png) <br><br><br>
+![example](./assets/zfs_fail_msg.png) <br>
