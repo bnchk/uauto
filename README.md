@@ -9,8 +9,9 @@ All scripts require setup of push message account as per [push-message-setup](ht
 <br>
 ## Scripts cover:<br>
 * logon notifications<br>
+* ZFS pool(disk array) monitoring
+## Scripts work in prgress:<br>
 * patching<br>
 * monitoring<br>
 * node/relay automation (Cardano projects Iagon+Encoins+WM)<br>
-* ZFS pool(disk array) monitoring
 <br>
