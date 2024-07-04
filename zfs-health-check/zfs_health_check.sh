@@ -1,6 +1,6 @@
 #! /bin/sh
 #
-# UPDATED VERSION 0.15 -> 0.18 FROM Calomel.org website, then converted to use Pushover push notifications instead of email
+# UPDATED VERSION 0.15 -> 0.18 from on Calomel.org website, then converted to use Pushover push notifications instead of email
 # NB UPDATE PUSHOVER USER and APP API Keys to be your ones
 #
 # Calomel.org
@@ -10,7 +10,7 @@
 
 # Check health of ZFS volumes and drives. On any faults send push notification.
 
-# Pushover api keys (update with your ones)
+# Pushover.net push message api keys (update with your ones)
 pushover_user_key="userkeyuserkeyuserkeyuserkeyuserkeyuserkey"
 pushover_app_key="appkeyappkeyappkeyappkeyappkeyappkeyappkey"
 
@@ -124,7 +124,7 @@ if [ ${problems} -eq 0 ]; then
    done
 fi
 
-# EMAIL NOTIFICATIONS - LEFT BUT COMMENTED OUT
+# EMAIL NOTIFICATIONS - LEFT IN BUT COMMENTED OUT AS NOT USED
 # Email - On any problems send email with drive status information and
 # capacities including a helpful subject line. Also use logger to write the
 # email subject to the local logs. This is also the place you may want to put
@@ -142,8 +142,12 @@ fi
 # Setup an account and get user key and app key
 
 if [ "$problems" -ne 0 ]; then
-  printf '%s\n' "$emailSubject" "" "`/sbin/zpool list`" "" "`/sbin/zpool status`" | /usr/bin/mail -s "$emailSubject" root@localhost
-  logger $emailSubject
+   msg=$(printf '%s\n' "$emailSubject" "" "`/sbin/zpool list`" "" "`/sbin/zpool status`")
+   curl -s \
+      --form-string "token=$pushover_app_key" \
+      --form-string "user=$pushover_user_key" \
+      --form-string "message=$msg" \
+      https://api.pushover.net/1/messages.json > /dev/null || true
 fi
 
 ### EOF ###
