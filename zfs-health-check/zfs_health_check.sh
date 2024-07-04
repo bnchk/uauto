@@ -142,7 +142,7 @@ fi
 # Setup an account and get user key and app key
 
 if [ "$problems" -ne 0 ]; then
-   msg=$(printf '%s\n' "$emailSubject" "" "`/sbin/zpool list`" "" "`/sbin/zpool status`")
+   msg=$(printf '%s\n' "$emailSubject" "" "`/sbin/zpool list`" "" "`/sbin/zpool status | sed 's/^[ \t]*//'`")
    curl -s \
       --form-string "token=$pushover_app_key" \
       --form-string "user=$pushover_user_key" \
