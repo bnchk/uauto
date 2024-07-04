@@ -1,40 +1,31 @@
-#! /usr/local/bin/bash
+#! /bin/sh
 #
-# Calomel.org 
+# Calomel.org
 #     https://calomel.org/zfs_health_check_script.html
-#     FreeBSD 9.1 ZFS Health Check script 
-#     zfs_health.sh @ Version 0.15
+#     FreeBSD ZFS Health Check script
+#     zfs_health.sh @ Version 0.18
 
-# Check health of ZFS volumes and drives. On any faults send email. In FreeBSD
-# 10 there is supposed to be a ZFSd daemon to monitor the health of the ZFS
-# pools. For now, in FreeBSD 9, we will make our own checks and run this script
-# through cron a few times a day.
+# Check health of ZFS volumes and drives. On any faults send email.
 
-# Changelog
-# Peter van der Does - Always send an email, even if there is no problem.
-#                      I prefer to know a script has run even when there is no problem.
-# June 24, 2015
-# Peter van der Does - When a scrub is needed the email subject line only has to inform us once.
 
-# 99 problems but ZFS ain't one
+# 99 problems but ZFS aint one
 problems=0
-emailSubject="`hostname` - ZFS pool - HEALTH check"
-emailMessage=""
+
 
 # Health - Check if all zfs volumes are in good condition. We are looking for
 # any keyword signifying a degraded or broken array.
 
 condition=$(/sbin/zpool status | egrep -i '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
 if [ "${condition}" ]; then
-  emailSubject="$emailSubject - fault"
-  problems=1
+        emailSubject="`hostname` - ZFS pool - HEALTH fault"
+        problems=1
 fi
 
 
-# Capacity - Make sure pool capacities are below 80% for best performance. The
+# Capacity - Make sure the pool capacity is below 80% for best performance. The
 # percentage really depends on how large your volume is. If you have a 128GB
 # SSD then 80% is reasonable. If you have a 60TB raid-z2 array then you can
-# probably set the warning closer to 95%. 
+# probably set the warning closer to 95%.
 #
 # ZFS uses a copy-on-write scheme. The file system writes new data to
 # sequential free blocks first and when the uberblock has been updated the new
@@ -46,14 +37,14 @@ fi
 maxCapacity=80
 
 if [ ${problems} -eq 0 ]; then
-  capacity=$(/sbin/zpool list -H -o capacity)
-  for line in ${capacity//%/}
-  do
-    if [ $line -ge $maxCapacity ]; then
-      emailSubject="$emailSubject - Capacity Exceeded"
-      problems=1
-    fi
-  done
+   capacity=$(/sbin/zpool list -H -o capacity | cut -d'%' -f1)
+   for line in ${capacity}
+     do
+       if [ $line -ge $maxCapacity ]; then
+         emailSubject="`hostname` - ZFS pool - Capacity Exceeded"
+         problems=1
+       fi
+     done
 fi
 
 
@@ -63,18 +54,18 @@ fi
 # faulty drive and run "zpool scrub" on the affected volume after resilvering.
 
 if [ ${problems} -eq 0 ]; then
-  errors=$(/sbin/zpool status | grep ONLINE | grep -v state | awk '{print $3 $4 $5}' | grep -v 000)
-  if [ "${errors}" ]; then
-    emailSubject="$emailSubject - Drive Errors"
-    problems=1
-  fi
+   errors=$(/sbin/zpool status | grep ONLINE | grep -v state | awk '{print $3 $4 $5}' | grep -v 000)
+   if [ "${errors}" ]; then
+        emailSubject="`hostname` - ZFS pool - Drive Errors"
+        problems=1
+   fi
 fi
 
 
 # Scrub Expired - Check if all volumes have been scrubbed in at least the last
 # 8 days. The general guide is to scrub volumes on desktop quality drives once
 # a week and volumes on enterprise class drives once a month. You can always
-# use cron to schedule "zpool scrub" in off hours. We scrub our volumes every
+# use cron to schedual "zpool scrub" in off hours. We scrub our volumes every
 # Sunday morning for example.
 #
 # Scrubbing traverses all the data in the pool once and verifies all blocks can
@@ -85,54 +76,56 @@ fi
 # "zpool scrub" command.
 #
 # The scrubExpire variable is in seconds. So for 8 days we calculate 8 days
-# times 24 hours times 3600 seconds to equal 691200 seconds. 
+# times 24 hours times 3600 seconds to equal 691200 seconds.
 
 scrubExpire=691200
 
 if [ ${problems} -eq 0 ]; then
-  currentDate=$(date +%s)
-  zfsVolumes=$(/sbin/zpool list -H -o name)
+   currentDate=$(date +%s)
+   zfsVolumes=$(/sbin/zpool list -H -o name)
 
   for volume in ${zfsVolumes}
-  do
+   do
     if [ $(/sbin/zpool status $volume | egrep -c "none requested") -ge 1 ]; then
-      echo "ERROR: You need to run \"zpool scrub $volume\" before this script can monitor the scrub expiration time."
-      break
+        printf "ERROR: You need to run \"zpool scrub $volume\" before this script can monitor the scrub expiration time."
+        break
     fi
     if [ $(/sbin/zpool status $volume | egrep -c "scrub in progress|resilver") -ge 1 ]; then
-      break
+        break
     fi
 
-    ### FreeBSD with *nix supported date format
-    scrubRawDate=$(/sbin/zpool status $volume | grep scrub | awk '{print $15 $12 $13}')
-    scrubDate=$(date -j -f '%Y%b%e-%H%M%S' $scrubRawDate'-000000' +%s)
+    ### Ubuntu 20.04 with GNU supported date format
+     scrubRawDate=$(/sbin/zpool status $volume | grep scrub | awk '{print $13" "$14" " $15" " $16" "$17}')
+     scrubDate=$(date -d "$scrubRawDate" +%s)
 
-    ### Ubuntu with GNU supported date format
-    #scrubRawDate=$(/sbin/zpool status $volume | grep scrub | awk '{print $11" "$12" " $13" " $14" "$15}')
-    #scrubDate=$(date -d "$scrubRawDate" +%s)
+    ### FreeBSD 13.0 with *nix supported date format
+    #scrubRawDate=$(/sbin/zpool status zroot | grep scrub | awk '{print $15 $12 $13}')
+    #scrubDate=$(date -j -f '%Y%b%e-%H%M%S' $scrubRawDate'-000000' +%s)
 
-    if [ $(($currentDate - $scrubDate)) -ge $scrubExpire ]; then
-      if [ ${problems} -eq 0 ]; then
-        emailSubject="$emailSubject - Scrub Time Expired. Scrub Needed on Volume(s)"
-      fi
-      problems=1
-      emailMessage="${emailMessage}Pool: $volume needs scrub \n"
-    fi
-  done
+    ### FreeBSD 12.0 with *nix supported date format
+    #scrubRawDate=$(/sbin/zpool status $volume | grep scrub | awk '{print $17 $14 $15}')
+    #scrubDate=$(date -j -f '%Y%b%e-%H%M%S' $scrubRawDate'-000000' +%s)
+
+    ### FreeBSD 11.2 with *nix supported date format
+    #scrubRawDate=$(/sbin/zpool status $volume | grep scrub | awk '{print $15 $12 $13}')
+    #scrubDate=$(date -j -f '%Y%b%e-%H%M%S' $scrubRawDate'-000000' +%s)
+
+     if [ $(($currentDate - $scrubDate)) -ge $scrubExpire ]; then
+        emailSubject="`hostname` - ZFS pool - Scrub Time Expired. Scrub Needed on Volume(s)"
+        problems=1
+     fi
+   done
 fi
 
 
-# Notifications - On any problems send email with drive status information and
-# capacities including a helpful subject line to root. Also use logger to write
-# the email subject to the local logs. This is the place you may want to put
-# any other notifications like:
-#
-# + Update an anonymous twitter account with your ZFS status (https://twitter.com/zfsmonitor)
-# + Playing a sound file or beep the internal speaker
-# + Update Nagios, Cacti, Zabbix, Munin or even BigBrother
+# Email - On any problems send email with drive status information and
+# capacities including a helpful subject line. Also use logger to write the
+# email subject to the local logs. This is also the place you may want to put
+# any other notifications like playing a sound file, beeping the internal 
+# speaker, paging someone or updating Nagios or even BigBrother.
 
-echo -e "$emailMessage \n\n\n `/sbin/zpool list` \n\n\n `/sbin/zpool status`" | mail -s "$emailSubject" root
 if [ "$problems" -ne 0 ]; then
+  printf '%s\n' "$emailSubject" "" "`/sbin/zpool list`" "" "`/sbin/zpool status`" | /usr/bin/mail -s "$emailSubject" root@localhost
   logger $emailSubject
 fi
 
