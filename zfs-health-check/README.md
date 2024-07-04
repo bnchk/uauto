@@ -5,6 +5,8 @@ Subsequently it was converted to communicate via push message instead of email.<
 To run the script copy to your preferred location:<br>
 eg `/opt/my_scripts/zfs_health_check.sh`<br><br>
 Edit script to replace 2 dummy api keys (lines 14/15) with ones from setup of your [pushover account](https://github.com/bnchk/UbuntuAutomation/tree/main/push-message-setup).<br>
+Alternately with existing pushover account, you could create a new application/api key if ZFS messages are to be grouped separately.<br>
+This is where in the script you replace your keys:<br>
 ```bash
 # Pushover.net push message api keys (update with your ones)
 pushover_user_key="userkeyuserkeyuserkeyuserkeyuserkeyuserkey"
