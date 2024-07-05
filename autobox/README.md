@@ -51,11 +51,11 @@ sudo sed -i "/#\$nrconf{kernelhints} = -1;/s/.*/\$nrconf{kernelhints} = -1;/" /e
 ```
 * The whole script is whitelisted for sudo without password prompt so automation can run on its own.  This is why security is important.
 * use command:  `sudo visudo`
-* add this line at end replacing youruser with the user scheduling script, and the path/scriptname if you changed them:
+* add this line at end replacing youruser with the user scheduling script, and the path/scriptname if you changed them:<br>
 `youruser ALL=(ALL) NOPASSWD: /opt/my_scripts/autobox/autobox.sh`
 * schedule the job using crontab:
 `crontab -e`
-* enter the schedule at end or crontable again changing script name/location if required, eg 8:30am in example
+* enter the schedule at end or crontable again changing script name/location if required, eg 8:30am in example:<br>
 `30 8 * * * sudo /opt/my_scripts/autobox/autobox.sh`
 
 ## SAMPLE MESSAGES
