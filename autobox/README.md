@@ -1,10 +1,13 @@
 # AUTOBOX - Automated Ubuntu patching<br>
-## DEPRECATED UNTIL UBUNTU CHANGES AROUND NEEDRESTART PACKAGE ARE ANALYSED<br>
+## DEPRECATED UNTIL UBUNTU DIFFERENCES AROUND NEEDRESTART PACKAGE ARE ANALYSED<br>
 ## UBUNTU HAS ALTERED UPDATE RESTART LOGIC WITH 24.04 ERA<br>
-## APPEARS TO ALSO CHANGE FROM 22.04.4<br>
-Package needrestart is now missing (the one that put up the purple DOS style confirmation windows<br><br><br>
+### APPEARS TO ALSO HAVE VARIATION FROM 22.04.4<br>
+Package needrestart is not always present and provides the means for the automation<br>
+(the one that put up the purple DOS style confirmation windows<br>
+The package has been added to some test boxes which didn't have it, and verify over time<br><br>
 -------------------------------------------------------------------------------------------------
-Original Guide:
+-------------------------------------------------------------------------------------------------
+## Original Guide:<br>
 Manages updates/patching for simple box running one service/job, and its reboot schedule.<br><br>
 Only for people who accept defaults for everything, as automation requires this to prevent prompts popping up.<br><br>
 Unattended updates has to be installed+running and this script will maintain the reboots/any unapplied patches.<br><br>
