@@ -4,7 +4,8 @@ If Ubuntu can install patches without requiring an update it is left to do so.  
 Only for situations where defaults accepted for everything, as automation requires this to prevent prompts popping up.<br><br>
 Requires needsupdate + unattended-updates packages.  These are not always installed by default so may need to be added.<br>
 Unattended updates has to be installed+running and this script will maintain the reboots/any unapplied patches.<br><br>
-Push message account has to be setup and you have 2x API keys (user+app) as per [pushover account](https://github.com/bnchk/UbuntuAutomation/tree/main/push-message-setup).<br><br>
+Push message account has to be setup and you have 2x API keys (user+app) as per [pushover account](https://github.com/bnchk/UbuntuAutomation/tree/main/push-message-setup).<br>
+Message priority can be set in the script, defaults to silent messages unless rebooting.<br><br>
 This job is run as a user with sudo access, with script whitelisted for non password prompting so it can be fully automated.<br><br>
 OpenSSH server and tailscale are updated immediately if patch exists.<br>
 GRUB updates will cause halting of this script, and request sent to apply manually.<br><br>
