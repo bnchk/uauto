@@ -15,6 +15,11 @@
 #=======================
 # REQUIRED CONFIGURATION
 #=======================
+# - Needs packages 
+#      sudo apt install unattended-upgrades 
+#      sudo dpkg-reconfigure --priority=low unattended-upgrades
+#      sudo apt install needrestart 
+#
 # - Copy this script in to suitable location (/opt/my_scripts/autobox used as example):
 #      sudo mkdir -p /opt/my_scripts/autobox
 #      sudo touch /opt/my_scripts/autobox/autobox.sh
@@ -62,15 +67,24 @@
 #        - all ok=-2, tailscale_only=0, full upd/rebooting/errors=1
 #        - on iOS -2=no popup/vibrate/watch but lists in history=>rely on monitors to know box is up (may change later)
 #      - add tailscale version number into standard message after update 0/1 status
-#      - ensure tailscale optional, boxes without it won't fail
-# v0.5 - BUGFIX for dpkg (package manager) getting locked out on popup confirmation windows by openssh-server (and can see grub2 will do this also)
+#      - ensure tailscale optional, boxes without it won't fail/flag issue
+# v0.5 - Bugfix/Stability - check for dpkg (package manager) getting locked out on popup confirmation windows by openssh-server (and can see grub2 will do this also)
 #        - openssh-server updates run individually to suppress confirmations such as "use older config file" style confirmations
 #          noting debian dpkg config method can see will do nothing on Ubuntu despite documentation saying it should suppress confirmations.
 #        - grub-pc will exit with warning - it is too dangerous to automate this until it is understood more.  Maybe it will be OK
 #          but halt all automation when this is detected so it can be manually analysed
 #      - add check for dpkg (package manager) locked out, plus needs "dpkg --configure -a" run manually to finish confirmations
+# v0.6 - Stability - add environment checks for installed packages, as appears variety between ubuntu source being VPS or Ubuntu - some don't have needrestart
+#      - Stability - check required configuration was performed before allowing script to run
 
-# TODO - add check for when automated updates are actually running and snoose this script for a period (maybe), has been no issue so far but
+# TODO - add more forced killing of service before reboots if it doesn't shutdown on nice request?  
+#         - But reboot would do same anyway.  
+#         - Maybe instead option to pause rebooting+notify if service won't stop (eg if it is known it will corrupt blockchain by forced quit/reboot).
+#      - add check for when automated updates are actually running and snoose this script for a period (maybe), has been no issue so far but
+#      - centralise the storage of secrets config for different automation scripts somewhere.  May need 2 lines for logon script vs other automation.  Low priority.
+#      - add something for when 50_cloud_init used to override ssh config=>no change to standard config=>no need to override to keep modified config=>super future proof. But starting to chase tail with this, so just leave it.
+#      - option for days delay before tailscale update?  Sometimes they come out with patch for earlier patch, can have user set integer to delay.  But chasing tail again, probably leave as is.
+#      - Maybe refuse to run if can see privesc security not done => No leave people to their own security models
 
 
 #========================
@@ -122,7 +136,7 @@ priority_high="1"
 # MAIN - MAIN - MAIN 
 #===================
 #secrets 
-[ ! -f ${secrets_file} ] && exit  #pointless..
+[ ! -f ${secrets_file} ] && echo "Secrets file location is too secret - not here: ${secrets_file}" && exit  #pointless..
 apitoken="$(cat $secrets_file | grep -v ^# | grep apitoken | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
 usrtoken="$(cat $secrets_file | grep -v ^# | grep usrtoken | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
 service="$(cat $secrets_file  | grep -v ^# | grep service  | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
@@ -130,7 +144,10 @@ service="$(cat $secrets_file  | grep -v ^# | grep service  | awk -F\= '{ print $
 [ -z $usrtoken ] && exit 
 [ -z $service ]  && service="ok-just-updates"
 
-# Is package manager locked out?  (dpkg maybe stuck on prompt window forever = package installed, but not configured = cannot recover)
+#-------------------
+# ENVIRONMENT CHECKS
+#-------------------
+# Environment check - is package manager locked out?  (dpkg maybe stuck on prompt window forever = package installed, but not configured = cannot recover)
 if [ $(dpkg -l | grep -E '^[A-Za-z][A-Z]' | wc -l) -ne 0 ]; then 
    dpkg_failed_packages=$(dpkg -l | grep -E '^[A-Za-z][A-Z]' | awk '{ print $2 }')
    pushmessage="HELP NEEDED!\nBox: `uname -n`\nDPKG LOCKED FOR:\n${dpkg_failed_packages}\nTry: dpkg --configure -a\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
@@ -138,21 +155,69 @@ if [ $(dpkg -l | grep -E '^[A-Za-z][A-Z]' | wc -l) -ne 0 ]; then
    exit 1   
 fi
 
-# Is script already running?
+# Environment check - is script already running?
 if [ "$(pidof -o %PPID -x $(basename $0))" != "" ]; then 
    pushmessage="HELP NEEDED!\nBox: `uname -n`\n$(basename $0)\nRUNNING TWICE\nEXITED 2ND JOB\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
 
-# get update status
-f_checkupdates
+# Environment check - is unattended updates installed?
+if [ $(dpkg-query -W unattended-upgrades | grep -i "no packages found" | wc -l) -eq 1 ]; then
+   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nMissing package\nunattended-upgrades\nPlease install\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 1   
+fi
+
+# Environment check - does unattended updates appear configured?
+if [ -f /etc/apt/apt.conf.d/20auto-upgrades ]; then
+   if [ $(cat /etc/apt/apt.conf.d/20auto-upgrades | grep "1" | wc -l) -gt 0 ]; then
+   ua_configured=1
+   else
+      ua_configured=0
+   fi
+else
+   ua_configured=0
+fi
+if [ ${ua_configured} -eq 0 ]; then
+   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nUnattended-upgrades\npackage installed\nnot configured.\nPlease configure.\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 1   
+fi
+
+# Environment check - is needrestart installed?
+if [ $(dpkg-query -W needrestart | grep -i "no packages found" | wc -l) -eq 1 ]; then
+   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nMissing package\nneedrestart\nPlease install\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 1   
+fi
+if [ ! -f /etc/needrestart/needrestart.conf ]; then
+   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nPackage needrestart\nhas issues\nPlease reinstall\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 1   
+fi
+
+# Environment check - is needrestart configured?
+if [ $(cat /etc/needrestart/needrestart.conf | grep "^\$nrconf{restart} = 'a';" | wc -l) -ne 1 ]; then
+   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nPackage needrestart\nconfig incorrect\nset restart=a\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 1   
+fi
+if [ $(cat /etc/needrestart/needrestart.conf | grep "^\$nrconf{kernelhints} = -1;" | wc -l) -ne 1 ]; then
+   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nPackage needrestart\nconfig incorrect\nset kernelhints=-1\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   exit 1   
+fi
+
 
 #---------------------------
 # INDIVIDUAL PACKAGE UPDATES - tailscale, openssh-server, grub-pc
 #---------------------------
 # If other triggers required fall though + update everything, but check first for high priority/isolated updates
 # Take care these processes don't individually cause reboot flag scenario post their updating
+
+# get update status
+f_checkupdates
 
 # OPENSSH-SERVER
 if [ $openssh_upd_q -ne 0 ]; then
@@ -164,15 +229,20 @@ if [ $openssh_upd_q -ne 0 ]; then
 fi
 
 # TAILSCALE
-[ $(dpkg -s tailscale | grep -i version | wc -l) -eq 1 ] && tailscale_curr_v="$(tailscale version | head -1 | awk '{ print $1 }')" || tailscale_curr_v=" n/a"
-if [ \( $rebooted_days_ago_q -lt $max_days_without_reboot \) -a \( $reboot_reqd_f -eq 0 \) -a \( $tailscale_upd_q -ne 0 \) ]; then
-   # update tailscale only if nothing else
-   sudo apt install tailscale -y >/dev/null 2>&1 && sleep 2
-   tailscale_post_v=$(tailscale version | head -1 | awk '{ print $1 }')
-   pushmessage="TAILSCALE UPDT\nBox: `uname -n`\nUser:$(whoami)\nv${tailscale_curr_v}->v${tailscale_post_v}\n Date: `date`"   
-   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_std}"
-   f_checkupdates # refresh update status in case tailscale update itself triggered reboot required
-   tailscale_curr_v=${tailscale_post_v}
+if [ $(dpkg-query -W tailscale | grep -i "no packages found" | wc -l) -eq 0 ]; then
+   # tailscale installed
+   [ $(dpkg -s tailscale | grep -i version | wc -l) -eq 1 ] && tailscale_curr_v="$(tailscale version | head -1 | awk '{ print $1 }')" || tailscale_curr_v=" n/a"
+   if [ \( $rebooted_days_ago_q -lt $max_days_without_reboot \) -a \( $reboot_reqd_f -eq 0 \) -a \( $tailscale_upd_q -ne 0 \) ]; then
+      # update tailscale only if nothing else
+      sudo apt install tailscale -y >/dev/null 2>&1 && sleep 2
+      tailscale_post_v=$(tailscale version | head -1 | awk '{ print $1 }')
+      pushmessage="TAILSCALE UPDT\nBox: `uname -n`\nUser:$(whoami)\nv${tailscale_curr_v}->v${tailscale_post_v}\n Date: `date`"   
+      f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_std}"
+      f_checkupdates # refresh update status in case tailscale update itself triggered reboot required
+      tailscale_curr_v=${tailscale_post_v}
+   fi
+else
+   tailscale_curr_v=" n/a"
 fi
 
 # GRUB-PC - exit for now, this is really dangerous to automate..
@@ -182,6 +252,13 @@ if [ $grub_upd_q -ne 0 ]; then
    exit 5
 fi
 
+# Re-check if reboot required after any individual packages
+[ -f /var/run/reboot-required ] && reboot_reqd_f=1 || reboot_reqd_f=0
+
+
+#----------------------
+# UPDATE/REBOOT OR EXIT
+#----------------------
 # Trigger reboot:  required_f -o- tailscale -o- gt_daycounter+updates -o- openssh-server (but not grub yet till options seen/checked)
 if [ \( $total_update_q -gt 0 -a $rebooted_days_ago_q -ge $max_days_without_reboot \) -o \( $reboot_reqd_f -eq 1 \) -o \( $tailscale_upd_q -ne 0 \) -o \( $openssh_upd_q -ne 0 \) ]; then
    trigger_updates_f=1
@@ -189,8 +266,6 @@ else
    trigger_updates_f=0
 fi
 
-#----------------------
-# UPDATE/REBOOT OR EXIT
 if [ $trigger_updates_f -eq 0 ]; then
    #--------
    # OK EXIT
