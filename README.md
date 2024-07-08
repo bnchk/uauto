@@ -8,10 +8,9 @@ Any feedback/suggestions most welcome.<br><br>
 All scripts require setup of push message account as per [push-message-setup](https://github.com/bnchk/UbuntuAutomation/tree/main/push-message-setup) <br>
 <br>
 ## Scripts cover:<br>
-* logon notifications<br>
+* logon notifications(ssh/terminal/gui)<br>
+* autobox(patching/rebooting)<br>
 * ZFS pool(disk array) monitoring
-## Scripts work in prgress:<br>
-* patching<br>
+## Scripts work in progress:<br>
 * monitoring<br>
 * node/relay automation (Cardano projects Iagon+Encoins+WM)<br>
-<br>
