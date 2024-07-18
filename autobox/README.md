@@ -47,7 +47,9 @@ sudo chmod 700 /opt/my_scripts/autobox/autobox.sh && \
 sudo nano /opt/my_scripts/autobox/autobox.sh
 ```
 Copy the raw autobox.sh script, paste into editor plus save it.<br>
-Edit the max_days_without_reboot variable (default set to 21).
+Set variables in code:
+* Edit the max_days_without_reboot variable (default set to 21)
+* Run beta_code = y/n - yes will update to openssh_server
 
 ## SECRETS FILE
 Contains the 2 api keys for push messages, plus service to stop (if any).<br>
