@@ -23,15 +23,15 @@
 #----------------------
 # PUSH MESSAGE FUNCTION - sent via pushover app (free trial/$5usd forever /device)
 #----------------------
-#   - requires secrets_file containing both apitoken and usrtoken
-#     but will automatically ignore messaging if no account/secrets file
+#   - requires config_file containing both apitoken and usrtoken
+#     but will automatically ignore messaging if no account/config file
 #   - requires curl package installed:    sudo apt-get update && sudo apt install curl
 #
-# Sample secrets file layout (without #), servicename not used yet (can be left out):
+# Sample config file layout (without #), servicename not used yet (can be left out):
 #apitoken=apitokenapitokenapitokenapitoken
 #usrtoken=usrtokenusrtokenusrtokenusrtoken
 #nodename=yournodename
-#servicename=iag-cli.service
+#servicename=iagon.service
 _pushmessage() {
    apitoken="${1}"
    usrtoken="${2}"
@@ -49,10 +49,10 @@ _pushmessage() {
 #---------------
 send_push_msgs="y"   # enable messaging (requires pushover acct)
 enable_auto_upd="y"  # enable automated updates of node binary
+config_file="/opt/uauto/uauto.conf"        # location of config file
 home_folder="/home/iagon/bin"              # folder everything is running in
 temp_folder="${home_folder}/tmp"           # auto-updater - temp storage, note if files in this folder autoupdater will turn off in case something failed
 archive_folder="${home_folder}/archived"   # auto-updater - store historic versions in case need to revert
-secrets_file="${home_folder}/secrets.txt"  # path to secrets file or blank out
 log_file="${home_folder}/log.txt"          # path to log file
 time_for_daily_msg=845                     # time around which will check for updates and send daily ok message
 
@@ -64,12 +64,12 @@ echo "`date +"%Y%m%d_%H%M:%S"` - IAGON MONITOR INITIALISING" >> $log_file
 # Log run mode
 if [ "${send_push_msgs}" != "y" ]; then
     echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES OFF - manual choice" >> $log_file
-elif [ -z ${secrets_file} ]; then
-    send_push_msgs="n"  # no secrets means no api keys for messages = no messages
-    echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES OFF - secrets not set" >> $log_file
-elif [ ! -f ${secrets_file} ]; then
-    send_push_msgs="n"  # no secrets = no api keys for messages = no messages
-    echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES OFF - cannot find ${secrets_file}" >> $log_file
+elif [ -z ${config_file} ]; then
+    send_push_msgs="n"  # no config means no api keys for messages = no messages
+    echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES OFF - config not set" >> $log_file
+elif [ ! -f ${config_file} ]; then
+    send_push_msgs="n"  # no config = no api keys for messages = no messages
+    echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES OFF - cannot find ${config_file}" >> $log_file
 elif [ "$(apt list curl 2>&1 | grep installed | wc -l | awk '{ print $1 }')" != "1" ]; then
     if [ "${send_push_msgs}" == "y" ]; then
         send_push_msgs="n"  # cannot send push message without curl command
@@ -80,16 +80,16 @@ elif [ "$(apt list curl 2>&1 | grep installed | wc -l | awk '{ print $1 }')" != 
         echo "`date +"%Y%m%d_%H%M:%S"` - AUTO UPDATER TURNED OFF - install curl package to enable" >> $log_file
     fi
 else
-    # Load secrets
-    apitoken="$(grep apitoken $secrets_file | awk -F\= '{ print $2}')"
-    usrtoken="$(grep usrtoken $secrets_file | awk -F\= '{ print $2}')"
-    nodename="$(grep nodename $secrets_file | awk -F\= '{ print $2}')"
-    servicename="$(grep servicename $secrets_file | awk -F\= '{ print $2}')"  # not reqd if modifying systemd
-    echo "`date +"%Y%m%d_%H%M:%S"` - SECRETS PARSED" >> $log_file
-    # Check secrets
+    # Load config
+    apitoken="$(grep apitoken $config_file | awk -F\= '{ print $2}')"
+    usrtoken="$(grep usrtoken $config_file | awk -F\= '{ print $2}')"
+    nodename="$(grep nodename $config_file | awk -F\= '{ print $2}')"
+    servicename="$(grep servicename $config_file | awk -F\= '{ print $2}')"  # not reqd if modifying systemd
+    echo "`date +"%Y%m%d_%H%M:%S"` - CONFIG PARSED" >> $log_file
+    # Check config
     [ -z $apitoken ] && send_push_msgs="n" || echo "`date +"%Y%m%d_%H%M:%S"` - PUSHOVER APIKEY - `echo $apitoken | cut -c1-5`*" >> $log_file
     [ -z $usrtoken ] && send_push_msgs="n" || echo "`date +"%Y%m%d_%H%M:%S"` - PUSHOVER USRKEY - `echo $usrtoken | cut -c1-5`*" >> $log_file
-    [ ${send_push_msgs} == "n" ] && echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES OFF - cannot parse tokens from secrets" >> $log_file \
+    [ ${send_push_msgs} == "n" ] && echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES OFF - cannot parse tokens from config" >> $log_file \
                                || echo "`date +"%Y%m%d_%H%M:%S"` - PUSH MESSAGES ON" >> $log_file 
 fi
 # Autoupdate folders ok?
