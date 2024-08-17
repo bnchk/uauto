@@ -23,7 +23,7 @@ Default settings for no issues across all scripts takes about 10seconds/day for 
 Messages are sent if something of note is happening (eg reboot for udpates/new version of project software being applied/raid failure, network switch down, box not responding to pings/no json response/box logged onto/etc).<br>
 todo - check - Package update messages may also be silent now, with reboot startup messaging left to the project service automation notifying its status as it comes online (or not).<br>
 For major issues requiring immediate human attention - messages are every hour until resolution auto-detected/messages cease.  This can be changed if needed.<br><br>
-![example](./assets/pushover.png) <br><br>
+![example](./common_setup/images/pushover.png) <br><br>
 
 ## Future ideas:<br>
 * if excess RAM usage/disk space issues etc, add more notification<br>
