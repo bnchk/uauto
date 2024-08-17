@@ -1,15 +1,16 @@
 #!/bin/bash
 #==========
-# AUTOBOX - automated patch application for simple Ubuntu box
+# PATCHER - automated patch management for simple Ubuntu box
 #==========
 
 #======
 # NOTES
 #======
 # - Security updates automatically applied via unattendend-upgrades package once a day at random time, usually without needing a reboot.
-# - But when it does need a reboot, this script looks after it.
+# - When a security patch triggered need a reboot, this script looks after it + will also apply any non-security standard/dist updates not applied by unattendend-upgrades.
 # - If tailscale can be separated and updated individually without requiring reboot attempt is made to do so.
-# - openssh-server + grub2 updates are performed individually (appears only way to suppress pop-up confirmations)
+# - openssh-server updates are performed individually if found queued up
+# - grub2 updates are not performed, just notification sent (maybe better to watch them in case some unexpected prompt pops up)
 
 
 #=======================
@@ -20,16 +21,17 @@
 #      sudo dpkg-reconfigure --priority=low unattended-upgrades
 #      sudo apt install needrestart 
 #
-# - Copy this script in to suitable location (/opt/my_scripts/autobox used as example):
-#      sudo mkdir -p /opt/my_scripts/autobox
-#      sudo touch /opt/my_scripts/autobox/autobox.sh
-#      sudo chmod 700 /opt/my_scripts/autobox/autobox.sh
+# - Copy this script in to suitable location (/opt/uauto/patcher used as example):
+#      sudo mkdir -p /opt/uauto/patcher
+#      sudo touch /opt/uauto/patcher/patcher.sh
+#      sudo chmod 700 /opt/uauto/patcher/patcher.sh
 #        and copy this into it..
 #
-# - Create secrets file referenced in user variable below
-#      sudo touch /opt/my_scripts/autobox/secrets.txt
-#      sudo chmod 700 /opt/my_scripts/autobox/secrets.txt
-#      sudo vi /opt/my_scripts/autobox/secrets.txt
+# - Create config file referenced in user variable below
+#      sudo touch /opt/uauto/uauto.conf
+#      sudo chown root:root /opt/uauto/uauto.conf
+#      sudo chmod 700 /opt/uauto/uauto.conf
+#      sudo vi /opt/uauto/uauto.conf
 #        usrtoken="userkeyuserkeyuserkeyuserkeyzz"   #user
 #        apitoken="apikeyapikeyapikeyapikeyapikey"   #application key
 #        service="whateveritis.service"              #optional service that is to be stopped
@@ -42,13 +44,12 @@
 #          sudo sed -i "/#\$nrconf{kernelhints} = -1;/s/.*/\$nrconf{kernelhints} = -1;/" /etc/needrestart/needrestart.conf
 #
 # - To prevent sudo password request/storing password - whitelist whole script to sudoers so everything within it is run with sudo,
-#   in this example it is for a user called bossy (change username and path to script to suit):
+#   in this example replace username with your user running job + set path to script to match:
 #      use command:  sudo visudo  # and add line at end:
-#                    bossy ALL=(ALL) NOPASSWD: /opt/my_scripts/autobox/autobox.sh
+#                    username ALL=(ALL) NOPASSWD: /opt/uauto/patcher/patcher.sh
 #
-# - schedule once a day, run at 8:30am for now, and at reboot:
-#          crontab -e //  30 8 * * * sudo /opt/my_scripts/autobox/autobox.sh
-#                         @reboot sudo /opt/my_scripts/autobox/autobox.sh
+# - set schedule eg here once a day at 8:30am
+#          crontab -e //  30 8 * * * sudo /opt/uauto/patcher/patcher.sh
 
 
 #========
@@ -57,10 +58,10 @@
 # v0.1 - pilot test/learn mode, no service capability - was ok, just added message into HELP when cant stop service
 #      - run for months to get feel for what unattended updates is doing
 #      - check if running already and message + exit if so
-# v0.2 - changed install folder from /opt/my_scripts/ to /opt/my_scripts/autobox/
+# v0.2 - changed install folder
 #      - remove keys into secrets file in run folder + parse these secrets
 #      - remove pre reboot warning message as has had 100% ok for long enough to assume it wont hang for unknown reasons
-#      - clearer message headings like AUTOBOX OK etc
+#      - clearer message headings
 # v0.3 - testing inline sed edits for /etc/needrestart/needrestart.conf
 # v0.4 - separate tailscale package application update in case reboot not required for it alone
 #      - add priority to push messages:
@@ -76,15 +77,20 @@
 #      - add check for dpkg (package manager) locked out, plus needs "dpkg --configure -a" run manually to finish confirmations
 # v0.6 - Stability - add environment checks for installed packages, as appears variety between ubuntu source being VPS or Ubuntu - some don't have needrestart
 #      - Stability - check required configuration was performed before allowing script to run
+# v0.7 - move to /opt/uauto/patcher/patcher.sh + /opt/uauto/uauto.conf + remove from cron @reboot (leave that notification for uauto_monitor job)
+#      - add flag for beta code patching - openssh_server
+#      - add flag for grub patching - leave as no until have seen a few go past manually
+#      - v0.7.1 - name/folder shift again, didn't fit on watchface as well
 
-# TODO - add more forced killing of service before reboots if it doesn't shutdown on nice request?  
+# TODO - add logging
+#      - more forced killing of service before reboots if it doesn't shutdown on nice request?  
 #         - But reboot would do same anyway.  
 #         - Maybe instead option to pause rebooting+notify if service won't stop (eg if it is known it will corrupt blockchain by forced quit/reboot).
 #      - add check for when automated updates are actually running and snoose this script for a period (maybe), has been no issue so far but
 #      - centralise the storage of secrets config for different automation scripts somewhere.  May need 2 lines for logon script vs other automation.  Low priority.
 #      - add something for when 50_cloud_init used to override ssh config=>no change to standard config=>no need to override to keep modified config=>super future proof. But starting to chase tail with this, so just leave it.
 #      - option for days delay before tailscale update?  Sometimes they come out with patch for earlier patch, can have user set integer to delay.  But chasing tail again, probably leave as is.
-#      - Maybe refuse to run if can see privesc security not done => No leave people to their own security models
+#      - Maybe refuse to run if can see privesc security not done => No just note in guide it is important
 
 
 #========================
@@ -127,7 +133,9 @@ f_checkupdates() {
 #============
 # VARIABLES - change as needed
 max_days_without_reboot=21  # max number of days to let standard updates go without applying+updating
-secrets_file="/opt/my_scripts/autobox/secrets.txt"  # path to secrets file
+beta_code_ok="y"            # beta code = y will attempt to update comms packages - eg openssh_server + tailscale, noting openssh_server updates can have prompts for config choices which are suppressed
+grub_upd_ok="n"             # allow grub into standard patch stream? Leaving as no until watched it manually update a number of times + get comfortable about variety of confirmations
+config_file="/opt/uauto/uauto.conf"  # path to config file
 priority_silent="-2"
 priority_std="0"
 priority_high="1"
@@ -136,10 +144,10 @@ priority_high="1"
 # MAIN - MAIN - MAIN 
 #===================
 #secrets 
-[ ! -f ${secrets_file} ] && echo "Secrets file location is too secret - not here: ${secrets_file}" && exit  #pointless..
-apitoken="$(cat $secrets_file | grep -v ^# | grep apitoken | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
-usrtoken="$(cat $secrets_file | grep -v ^# | grep usrtoken | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
-service="$(cat $secrets_file  | grep -v ^# | grep service  | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
+[ ! -f ${config_file} ] && echo "Secrets file location is too secret - not here: ${config_file}" && exit  #pointless..
+apitoken="$(cat $config_file | grep -v ^# | grep apitoken | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
+usrtoken="$(cat $config_file | grep -v ^# | grep usrtoken | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
+service="$(cat $config_file  | grep -v ^# | grep service  | awk -F\= '{ print $2}' | awk -F\# '{ print $1 }' | sed 's/ //g' | tr -d '"')"
 [ -z $apitoken ] && exit 
 [ -z $usrtoken ] && exit 
 [ -z $service ]  && service="ok-just-updates"
@@ -148,23 +156,24 @@ service="$(cat $secrets_file  | grep -v ^# | grep service  | awk -F\= '{ print $
 # ENVIRONMENT CHECKS
 #-------------------
 # Environment check - is package manager locked out?  (dpkg maybe stuck on prompt window forever = package installed, but not configured = cannot recover)
+# Run this ahead of "is script already running" is case other instance hung on package manager issues = still get notification
 if [ $(dpkg -l | grep -E '^[A-Za-z][A-Z]' | wc -l) -ne 0 ]; then 
    dpkg_failed_packages=$(dpkg -l | grep -E '^[A-Za-z][A-Z]' | awk '{ print $2 }')
-   pushmessage="HELP NEEDED!\nBox: `uname -n`\nDPKG LOCKED FOR:\n${dpkg_failed_packages}\nTry: dpkg --configure -a\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\nDPKG LOCKED FOR:\n${dpkg_failed_packages}\nTry: dpkg --configure -a\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
 
 # Environment check - is script already running?
 if [ "$(pidof -o %PPID -x $(basename $0))" != "" ]; then 
-   pushmessage="HELP NEEDED!\nBox: `uname -n`\n$(basename $0)\nRUNNING TWICE\nEXITED 2ND JOB\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\n$(basename $0)\nRUNNING TWICE\nEXITED 2ND JOB\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
 
 # Environment check - is unattended updates installed?
 if [ $(dpkg-query -W unattended-upgrades | grep -i "no packages found" | wc -l) -eq 1 ]; then
-   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nMissing package\nunattended-upgrades\nPlease install\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\nMissing package\nunattended-upgrades\nPlease install\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
@@ -180,31 +189,31 @@ else
    ua_configured=0
 fi
 if [ ${ua_configured} -eq 0 ]; then
-   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nUnattended-upgrades\npackage installed\nnot configured.\nPlease configure.\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\nUnattended-upgrades\npackage installed\nnot configured.\nPlease configure.\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
 
 # Environment check - is needrestart installed?
 if [ $(dpkg-query -W needrestart | grep -i "no packages found" | wc -l) -eq 1 ]; then
-   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nMissing package\nneedrestart\nPlease install\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\nMissing package\nneedrestart\nPlease install\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
 if [ ! -f /etc/needrestart/needrestart.conf ]; then
-   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nPackage needrestart\nhas issues\nPlease reinstall\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\nPackage needrestart\nhas issues\nPlease reinstall\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
 
 # Environment check - is needrestart configured?
 if [ $(cat /etc/needrestart/needrestart.conf | grep "^\$nrconf{restart} = 'a';" | wc -l) -ne 1 ]; then
-   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nPackage needrestart\nconfig incorrect\nset restart=a\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\nPackage needrestart\nconfig incorrect\nset restart=a\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
 if [ $(cat /etc/needrestart/needrestart.conf | grep "^\$nrconf{kernelhints} = -1;" | wc -l) -ne 1 ]; then
-   pushmessage="AUTOBOX ISSUE!\nBox: `uname -n`\nPackage needrestart\nconfig incorrect\nset kernelhints=-1\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
+   pushmessage="PATCHER ISSUE\nBox: `uname -n`\nPackage needrestart\nconfig incorrect\nset kernelhints=-1\n!!!QUITTING!!!\n User:$(whoami)\n Date: `date`"
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    exit 1   
 fi
@@ -221,15 +230,21 @@ f_checkupdates
 
 # OPENSSH-SERVER
 if [ $openssh_upd_q -ne 0 ]; then
-   pushmessage="OPENSSH UPDATE!\nBox: `uname -n`\nWARNING-BETA CODE\nMAY LOCK UP\nPACKAGE MANAGER\nDPKG\nSTARTING NOW\n Date: `date`"   
-   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
-   UCF_FORCE_CONFFOLD=1 sudo apt-get install -y openssh-server >/dev/null 2>&1
-   pushmessage="OPENSSH UPDATE!\nBox: `uname -n`\nCOMPLETED\n Date: `date`"   
-   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   if [ "$beta_code_ok" == "y" ]; then
+      pushmessage="PATCHER WARN\nOPENSSH UPDATE!\nBox: `uname -n`\nWARNING-BETA CODE\nMAY LOCK UP\nPACKAGE MANAGER\nDPKG\nSTARTING NOW\n Date: `date`"   
+      f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+      UCF_FORCE_CONFFOLD=1 sudo apt-get install -y openssh-server >/dev/null 2>&1
+      pushmessage="PATCHER WARN\nOPENSSH UPDATE!\nBox: `uname -n`\nCOMPLETED\n Date: `date`"   
+      f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   else # exit
+      pushmessage="PATCHER WARN\nOPENSSH UPDATE!\nBox: `uname -n`\nEXITING AS BETA\nCODE SET TO NO.\nPATCH+REBOOT NOW\nALL MANUAL\nUNTIL THIS APPLIED\n Date: `date`"   
+      f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+      exit 0
+   fi
 fi
 
 # TAILSCALE
-if [ $(dpkg-query -W tailscale | grep -i "no packages found" | wc -l) -eq 0 ]; then
+if [ $(dpkg-query -W tailscale 2>&1 | grep -i "no packages found" | wc -l) -eq 0 ]; then
    # tailscale installed
    [ $(dpkg -s tailscale | grep -i version | wc -l) -eq 1 ] && tailscale_curr_v="$(tailscale version | head -1 | awk '{ print $1 }')" || tailscale_curr_v=" n/a"
    if [ \( $rebooted_days_ago_q -lt $max_days_without_reboot \) -a \( $reboot_reqd_f -eq 0 \) -a \( $tailscale_upd_q -ne 0 \) ]; then
@@ -247,9 +262,14 @@ fi
 
 # GRUB-PC - exit for now, this is really dangerous to automate..
 if [ $grub_upd_q -ne 0 ]; then
-   pushmessage="!EEK GRUB UPDATE!\nBox: `uname -n`\nCANNOT DO-QUITTING\nTOO RISKY\nANALYSE SCENARIO\nIF IT OCCURS\n Date: `date`"   
-   f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
-   exit 5
+   if [ "$grub_upd_ok" == "y" ]; then
+      pushmessage="PATCHER EEK\n!GRUB UPDATE!\nBox: `uname -n`\nWRAPPING UP IN\nSTANDARD PATCHES\nVERY BRAVE\nGOOD LUCK..\n Date: `date`"   
+      f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+   else
+      pushmessage="PATCHER EEK\n!GRUB UPDATE!\nBox: `uname -n`\nCANNOT DO-QUITTING\nTOO RISKY\nANALYSE SCENARIO\nIF IT OCCURS\nMANUALLY APPLY\nPATCHES PLEASE\n Date: `date`"   
+      f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+      exit 5
+   fi
 fi
 
 # Re-check if reboot required after any individual packages
@@ -270,7 +290,7 @@ if [ $trigger_updates_f -eq 0 ]; then
    #--------
    # OK EXIT
    #--------
-   pushmessage="AUTOBOX OK\nBox: `uname -n`\n User:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q} v${tailscale_curr_v}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
+   pushmessage="PATCHER OK\nBox: `uname -n`\n User:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q} v${tailscale_curr_v}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_silent}"
 else
    #-----------
@@ -282,13 +302,13 @@ else
    if [ $node_state_post -eq 0 ]; then
       # UPDATE BOX
       sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y && sudo apt autoremove -y && sleep 2
-      pushmessage="Box: `uname -n`\nUPDATED+REBOOTING\nUser:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q} v${tailscale_curr_v}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
+      pushmessage="UPDATED+REBOOTING\nBox: `uname -n`\nUser:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q} v${tailscale_curr_v}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
       f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
       sudo reboot now # Boom
    else
       #----
       # EEK - Failed to stop service - send for help
-      pushmessage="HELP ME - SERVICE\nUNSTOPPABLE\nBox: `uname -n`\nService: ${service}\n\nUser:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q} v${tailscale_curr_v}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
+      pushmessage="PATCHER EEK\nHELP ME - SERVICE\nUNSTOPPABLE\nBox: `uname -n`\nService: ${service}\n\nUser:$(whoami)\n Updates:\nSecDist:${security_dist_q}\nSecStnd:${security_stnd_q}\nStndDist:${standard_dist_q}\nStndStnd:${standard_stnd_q}\nTailscale:${tailscale_upd_q} v${tailscale_curr_v}\nRebootedAgo:${rebooted_days_ago_q}\nReboot Reqd:${reboot_reqd_f}\nTrigger Updates:${trigger_updates_f}\n Date: `date`"   
       f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
    fi
 fi
