@@ -22,6 +22,7 @@
 # HISTORY
 # v0.2 - beta
 # v0.3 - fix package missing checks bug
+# v0.4 - notification on startup
 
 #-------------
 # PUSH MESSAGE
@@ -58,9 +59,10 @@ log_file="${log_folder}/monitor.log"
 
 #-----------------
 # SYSTEM VARIABLES
-last_am_checks_day=""     #init for sending one OK status a day
-last_failmsghour=""       #init for sending one fail msg an hour not spamming
+last_am_checks_day=""     #init as blank - date last message was sent
+last_failmsghour=""       #init as blank - last hour fail message was sent (for hourly fail notifications)
 encs_repo_url="https://api.github.com/repos/encryptedcoins/encoins-relay/releases/latest" #json for latest version
+sent_reboot_init_msg="n"  #send one message when starting box so know service status
 
 #----------------------
 # INITIALISATION CHECKS
@@ -109,10 +111,10 @@ while true; do
             last_failmsghour="$(date +%Y%m%d%H)"
         fi
     else
-    # NODE OK - Once a day update
+    # NODE OK - message once a day+on bootup
         curr_hhmm=$(date +%_H%M)
         curr_am_checks_day="$(date +%Y%m%d)"
-        if [ \( ${curr_hhmm#0} -ge ${time_for_daily_msg#0} -a "${curr_am_checks_day}" != "${last_am_checks_day}" \) ]; then
+        if [ \( ${curr_hhmm#0} -ge ${time_for_daily_msg#0} -a "${curr_am_checks_day}" != "${last_am_checks_day}" \)  -o \( $sent_reboot_init_msg == "n" \) ]; then
             [ "${enable_vers_check}" == "y" ] && online_node_version=`curl --silent "${encs_repo_url}" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'` \
                                               || online_node_version=${running_node_version}
             if [ "${running_node_version}" == "${online_node_version}" ]; then
@@ -123,8 +125,8 @@ while true; do
             echo "`date +"%Y%m%d_%H%M:%S"` - OK: ${PUSHMSG}" >> $log_file 
             _pushmessage "${apitoken}" "${usrtoken}" "${PUSHMSG}"
             last_am_checks_day="$(date +%Y%m%d)"
+            sent_reboot_init_msg="y"
         fi
     fi
     sleep 300
 done
-
