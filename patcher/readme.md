@@ -8,7 +8,7 @@ Relies on unattended-updates for background silent patching, then manages reboot
 * Reboots (and applies any other updates queued) when unattended updates has flagged reboot is required
 * Push message account + config has to be setup per [common_setup](../common_setup)
 * Script whitelisted for non sudo password prompting so it can be fully automated
-* This requires careful attention to permissions for security
+   * This requires careful attention to permissions for security
 * OpenSSH server and tailscale are updated immediately if patch available
 * GRUB (bootloader) updates will NOT be applied + script will not reboot + will message to update manually
 * Requires suppression of all pop-up prompts that would halt automation (will default to agree with everything)
@@ -37,7 +37,7 @@ Ensure only the sudo user running the task can edit the script and no other user
 This mitigates privilege escalation risk where lower access user adds line in automated script<br>
 to give themselves higher access next time it runs.<br><br>
 Using 3 users also compartmentalises breach scope in event of node software security issue:
-* sudo user - schedules scripts like this one/sudo tasks, no ssh access
+* sudo user - schedules scripts like this/setup services/sudo tasks, no ssh access
 * service user - no sudo, but runs the node/job the box is there for, no ssh access
 * access user - no sudo, ssh in via this user (its only purpose)
 <br>
@@ -52,9 +52,6 @@ If unattended-upgrades not running:
 ```bash
 sudo dpkg-reconfigure --priority=low unattended-upgrades
 ```
-
-This example uses /opt/my_scripts/autobox/autobox.sh, and a secrets.txt file in the same folder.<br>
-If you modify the location, also change the scripts variable for secrets file location.<br>
 <br>
 
 ### SCRIPT CREATION:
@@ -66,7 +63,6 @@ If you modify the location, also change the scripts variable for secrets file lo
    sudo chmod 700 /opt/uauto/patcher/patcher.sh && \
    sudo nano      /opt/uauto/patcher/patcher.sh
    ```
-<br>
 
 * Open the raw [./patcher.sh](https://raw.githubusercontent.com/bnchk/uauto/main/patcher/patcher.sh) script, copy+paste into editor and save/exit
 <br>
@@ -74,7 +70,8 @@ If you modify the location, also change the scripts variable for secrets file lo
 ### VARIABLES:
 Low importance but can:
 * Edit max_days_without_reboot variable.  Default is 21, but has never been reached as reboots usually trigger ~10-14 days
-* Run beta_code = y/n - default of yes will update to openssh_server, but has been stable for last couple of updates
+* Run beta_code = y/n - default of yes will update to openssh_server (but has been stable for last couple of updates)
+   * Previously unexpected confirmation popup caused package manager to freeze waiting for prompt, but script now checks for this scenario having occured (plus messages command to release package manager)
 <br>
 
 
@@ -91,7 +88,7 @@ sudo sed -i "/#\$nrconf{kernelhints} = -1;/s/.*/\$nrconf{kernelhints} = -1;/" /e
 ```
 <br>
 
-### WHITELIST SCRIPT RUNNING (passwordless sudo)
+### WHITELIST SCRIPT RUNNING (passwordless sudo):
 Rather than have passwordless sudo enabled, only the script is whitelisted for sudo without password prompt (required so automation can run on its own).<br>
 This is why permissions security around it is important.  To whitelist the script:
 ```bash
@@ -103,8 +100,8 @@ youruser ALL=(ALL) NOPASSWD: /opt/uauto/patcher/patcher.sh
 ```
 <br>
 
-### SCHEDULING
-Add to crontab:
+### SCHEDULING:
+Add to crontab
 ```bash
 crontab -e
 ```
