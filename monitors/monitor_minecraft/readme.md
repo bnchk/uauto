@@ -9,8 +9,8 @@
 <br>
 
 ### REQUIREMENTS
-* Ubuntu:  sudo apt install p7zip-full jq python3-pip
-* Python:  pip install requests beautifulsoup4
+* Ubuntu:  `sudo apt install p7zip-full jq python3-pip`
+* Python:  `pip install requests beautifulsoup4`
 <br>
 
 ### SETUP - NB older gen script using /opt/my_scripts + secrets.txt instead of uauto folders
