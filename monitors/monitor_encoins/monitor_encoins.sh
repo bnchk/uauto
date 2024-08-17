@@ -31,12 +31,18 @@
 # v0.2 - beta
 # v0.3 - fix package missing checks bug
 # v0.4 - notification on startup
-# v0.5 - auto update capability + simplify log varibles + update functions
+# v0.5 - auto update capability + simplify log variables + update functions
+# v0.6 - typo only at this point - delete this note
+# v0.6.1 - notes only about where to put a revert funtion from 20240429
+#        - command to get service PID:  service_pid=`systemctl show --property MainPID --value node.service`
 
 #-----
-# TODO - add delegation amount into daily message, maybe via maestro chain indexer query?
+# TODO - 20240429 - ERR5 occurred, but would have been fixed with revert function
+#      - add delegation amount into daily message, maybe via maestro chain indexer query?
 #      - automatic update delay - allow update delay after seeing new relay version (jic in case team patch it) = send notification saying y of x days delay b4 udpate + days changed counter
 #                               - if a different version seen reset days counter
+#      - secrets parsing - remove up to each lines first hash (in case comment added at end)
+#      - 20240420 - process lost trigger going, but not restarting!  Maybe needs reboot/restart of process here
 
 #---------------
 # USER VARIABLES - change to suit
@@ -323,6 +329,9 @@ while true; do
                                 else
                                     # TOTALLY FUBAR :-(
                                     PUSHMSG="HELP - FUBAR!!\n${nodename}\n Box: `uname -n`\nNODE UPD ERR5\nUPDATE OK\nRESTART FAILED\nTOTALLY FUBAR\nRELAY OFFLINE"
+                                    # This occured 20240428 upgrading to v1.2.6.0 which did not work when replaced.
+                                    # but manually restoring old version was fine
+                                    # TODO have revert function call here
                                 fi
                             fi
                         fi
