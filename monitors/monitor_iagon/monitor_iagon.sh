@@ -4,14 +4,14 @@
 #=====================
 
 #---------
-# SECURITY - good practice notes (not just for this script)
+# SECURITY - good practice notes
 #---------
 # - Nothing in this script requires sudo privileges/root and should run as low level user (ie not root)
 # - This is to cover scenario where someone malicious finds way to trigger reverse shell via the iagon port forwards
 #   and they would then have CLI low level access to the node.
-# - The user scheduling/running node should also not have ability to edit any automated script running with root access, 
-#   because then the malicious user can use their access to simply edit the script running with root evelated access to 
-#   insert a command that assigns themselves root access ongoing next time scheduled job runs = thus gaining "privilege escalation" 
+# - The user scheduling/running node should also not have ability to edit any automated script running with root access,
+#   because then the malicious user can use their access to simply edit the script running with root evelated access to
+#   insert a command that assigns themselves root access ongoing next time scheduled job runs = thus gaining "privilege escalation"
 #   out of their low access sandbox.  This isn't to be concerned about, just good practice to follow.
 
 #----------------------
@@ -183,7 +183,7 @@ while true; do
                         echo "`date +"%Y%m%d_%H%M:%S"` - RESTARTING NODE" >> $log_file
 		                ${home_folder}/iag-cli-linux start >/dev/null 2>&1
 			            sleep 5
-					    
+
 						# Check updated version running or revert to previous version
             			if [[ "`echo $(${home_folder}/iag-cli-linux get:status 2>&1) | grep up | wc -l | awk '{ print $1 }'`" == "1" ]]; then
 						    #-----------
@@ -233,18 +233,18 @@ while true; do
 			# CHECK RESTART
 			if [[ "`echo $(${home_folder}/iag-cli-linux get:status 2>&1) | grep up | wc -l | awk '{ print $1 }'`" == "1" ]]; then
                 echo "`date +"%Y%m%d_%H%M:%S"` - RESTART SUCCESSFUL" >> $log_file
-			    PUSHMSG="IAGON RESTARTED OK\n${nodename}\n Box: `uname -n`\n Version: ${running_node_version}\n Date: `date`"
+			    PUSHMSG="IAGON RESTARTED OK\n${nodename}\n Box: `uname -n`\n Date: `date`"
                 [ "${send_push_msgs}" == "y" ] && _pushmessage "${apitoken}" "${usrtoken}" "${PUSHMSG}"
             else
                 echo "`date +"%Y%m%d_%H%M:%S"` - NODE DOWN - RESTART FAILED" >> $log_file
                 if [ "${curr_failmsghour}" != "${last_failmsghour}" ]; then
-			        PUSHMSG="IAGON FAIL\n${nodename}\n Box: `uname -n`\n Version: ${running_node_version}\n Date: `date`"
+			        PUSHMSG="IAGON FAIL\n${nodename}\n Box: `uname -n`\n Date: `date`"
                     [ "${send_push_msgs}" == "y" ] && _pushmessage "${apitoken}" "${usrtoken}" "${PUSHMSG}"
 				    last_failmsghour="$(date +%Y%m%d%H)"
 				fi
             fi
 		fi
 	fi
-	
+
 	sleep 300
 done
