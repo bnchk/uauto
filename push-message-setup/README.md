@@ -3,7 +3,7 @@ Push message functionality is enabled via account using app from [http://pushove
 ## CREATE ACCOUNT
 * Create account on [http://pushover.net](http://pushover.net) (am not affiliated, found randomly on web and works well)
 * Can use free 30day trial to test, or cost was only $5 once-off per device class as a perpetual licence<br>
-* This will give you a `user api key` to put in scripts<br><br>
+* This will give you a `user-api-key` to put in scripts<br><br>
 ## INSTALL APP
 * From [http://pushover.net](http://pushover.net) homepage
    * [Android - play store](https://play.google.com/store/apps/details?id=net.superblock.pushover)
@@ -14,4 +14,7 @@ Push message functionality is enabled via account using app from [http://pushove
 * Go to "Create Application" under your user account or [http://pushover.net/apps/build](https://pushover.net/apps/build)
 * Give the application a name, plus is recommended (but optional) to add thumbnail image
 * Application will embeded logo at start + look visually different - any small square icon is fine, some I've used are [sample thumbnails](assets/) 
-* You will receive a second `application api-key` to be used in conjunction with above `user api key` in scripts - so 2 keys total
+* You will receive a second `application-api-key` to be used in conjunction with above `user api-key` in scripts - so 2 keys total<br><br>
+## KEEP THE 2 x API-KEYS FOR CONFIG
+* All jobs on a box share the same configuration file `/opt/uauto/uauto.conf`
+* The user key + api key will be copied into this config file, further details are at start of each job (eg login_notifications/monitor/patcher)
