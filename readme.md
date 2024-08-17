@@ -1,10 +1,9 @@
-# Ubuntu Automation - simple scripts<br>
-These scripts were put together while learning about running internet facing Ubuntu boxes.<br>
-They automate most common tasks + communicate via push message.<br>
-The aim is to have the boxes look after themselves with as minimal notifications as possible.<br>
-
-There would be many other ways to achieve this, eg Prometheus/Grafana etc - but these are result a learning path for myself.<br>
-While the scripts work for me, I can't vouch for them as I don't know what I don't know. Apart from knowing it's a lot.<br>
+# uauto - ubuntu automation<br>
+A collection of simple scripts to run simple boxes on their own.<br>
+Also written by a simpleton, so comes with all the usual warnings..<br>
+The tasks have been keeping a variety of basic boxes/nodes running on their own, with as few communications as possible.<br>
+Not intented for complex boxes - eg buildingfrom source with dependencies, or that run tight on RAM/CPU.<br>
+But for something simple where you always click yes on updates, this may assist.<br>
 Any feedback/suggestions most welcome.<br><br>
 All scripts require setup of push message account as per [push-message-setup](https://github.com/bnchk/UbuntuAutomation/tree/main/push-message-setup) <br><br>
 
