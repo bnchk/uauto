@@ -9,9 +9,9 @@ Sends push message whenever a logon (via ssh/terminal/desktop) containing:<br>
   <img src="images/login_wm.png" width="49%" />
 </p><br><br>
 
-## SETUP PUSH MESSAGE ACCOUNT + CONFIG FILE (common steps)
-1:  Create push message account + setup config as per steps here: [push-message-setup](../push-message-setup)<br><br><br>
-## NOTIFICATION SCRIPT + LOGON TRIGGERS
+## COMMON SETUP - Push Message Account + Config file
+Create push message account + setup config as per steps here: [push-message-setup](../push-message-setup)<br><br><br>
+## NOTIFICATION SCRIPT
 ### 1: Install curl (if not already)
 ```bash
 sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
@@ -83,7 +83,8 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
    EOF
    ```
 <br><br>
-### 3:  SSH trigger<br>
+## LOGON TRIGGERS
+### 1:  SSH trigger<br>
 * Edit sshd PAM:
 
    ```bash
@@ -96,7 +97,7 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
    ```
 <br>
 
-### 4:  Console/Terminal trigger<br>
+### 2:  Console/Terminal trigger<br>
 * Edit login PAM:
 
    ```bash
@@ -110,7 +111,7 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
    ```
 <br>
 
-### 5:  GUI Login trigger (desktop Ubuntu)<br>
+### 3:  GUI Login trigger (desktop Ubuntu)<br>
 * N/A for cli only servers, this trigger is only for Ubuntu desktop GUI panels
 * Edit relevant PAM:
 
