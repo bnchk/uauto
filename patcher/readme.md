@@ -6,6 +6,7 @@ Relies on unattended-updates for background silent patching, then manages reboot
 * Requires needsupdate + unattended-updates packages
 * Does not reboot unless unattended updates flags it as required (or user set number of days since last reboot is exceeded)
 * Reboots (and applies any other updates queued) when unattended updates has flagged reboot is required
+* Will attempt to stop service on config before updating/rebooting
 * Push message account + config has to be setup per [common_setup](../common_setup)
 * Script whitelisted for non sudo password prompting so it can be fully automated
    * This requires careful attention to permissions for security
