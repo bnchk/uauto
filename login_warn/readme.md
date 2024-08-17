@@ -10,7 +10,7 @@ Sends push message whenever a logon (via ssh/terminal/desktop) containing:<br>
 </p><br><br>
 
 ## COMMON SETUP - Push Message Account + Config file
-Create push message account + setup config as per steps here: [push-message-setup](../push-message-setup)<br><br><br>
+Create push message account + setup config as per steps here:   [common_setup](../common_setup)<br><br><br>
 ## NOTIFICATION SCRIPT
 ### 1: Install curl (if not already)
 ```bash
