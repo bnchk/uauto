@@ -14,7 +14,7 @@
 * Create the monitor script:
    ```bash
    touch     /home/iagon/bin/monitor_iagon.sh && \
-   chmod 700 /home/iagon/bin/monitor_iagon.sh
+   chmod 700 /home/iagon/bin/monitor_iagon.sh && \
    vi        /home/iagon/bin/monitor_iagon.sh
    ```
 * Copy+paste in the raw monitor script from [./monitor_iagon.sh](https://raw.githubusercontent.com/bnchk/uauto/main/monitors/monitor_iagon/monitor_iagon.sh) and save
