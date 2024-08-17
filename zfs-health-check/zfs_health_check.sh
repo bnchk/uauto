@@ -1,6 +1,9 @@
 #! /bin/sh
+# From: Peter Vanderos Gist v0.15 - https://gist.github.com/petervanderdoes/bd6660302404ed5b094d
+# UPDATED VERSION 0.15 -> 0.18 from his Calomel.org website, then converted to use Pushover push notifications instead of email
 #
-# UPDATED VERSION 0.15 -> 0.18 from on Calomel.org website, then converted to use Pushover push notifications instead of email
+# NB UPDATE PUSHOVER USER and APP API Keys to be your ones
+# NB UPDATE PUSHOVER USER and APP API Keys to be your ones
 # NB UPDATE PUSHOVER USER and APP API Keys to be your ones
 #
 # Calomel.org
