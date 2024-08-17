@@ -1,4 +1,10 @@
 # MONITOR IAGON (cli version)
+### SCRIPT
+* runs as a service monitoring iagon and restarting it if unresponsive
+* sends a status update once a day (silent if all ok)
+* pings notification whenever anything amiss and what it is doing to rectify
+<br>
+
 ### THIS PRESUMES:
 * cli iagon is running under a non-sudo user called iagon from `/home/iagon/bin`
 * that uauto config is performed as per [common_setup](../../common_setup)
@@ -15,7 +21,10 @@
 <br>
 
 ### SETUP SERVICE:
-* change to your sudo user and edit:  `sudo vi /etc/systemd/system/iagon.service`
+* change to your sudo user and edit:
+   ```bash
+   sudo vi /etc/systemd/system/iagon.service
+   ```
 * paste in service details:
    ```bash
    [Unit]
