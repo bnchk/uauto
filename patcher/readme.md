@@ -16,9 +16,14 @@ Relies on unattended-updates for background silent patching, then manages reboot
 <br>
 
 ### Messages:
-* Sent once a day, with aim less is more
-* Priority can be set in the script, defaults are silent messages unless reboot triggered
-* Messages only relate to patching, liveliness of box/node is via [monitors](../monitors) - both on box, and external looking back at it
+* Once a day
+* If no action message is silent (is in message history, but not notified onscreen)
+* If reboot being triggered message is not silent and provides reason why
+* Priority level variable can changed in the script, above is only default settings
+* Messages only relate to patching, liveliness of box/node is via [monitors](../monitors)
+* Monitors are two forms
+   * on box - maintaining awareness of running state
+   * external to box - looking back at it from other network locations
 * Unapplied update counts are split 4ways into Distribution-Standard+Security, and Standard-Standard+Security
 * Counts go up/down day to day, as depending on this script+unattended updates schedules they may accrue/be successfully applied
 <br>
