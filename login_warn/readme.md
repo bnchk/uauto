@@ -36,7 +36,7 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
 * add code into correctly permissioned script
 
    ```bash
-   sudo tee /opt/my_scripts/login_warn.sh > /dev/null <<EOF
+   sudo tee /opt/uauto/login_warn/login_warn.sh > /dev/null <<EOF
    #!/bin/bash
    # LOGIN WARNINGS - Send push message on logins (ssh, terminal, GUI)
    # Script is triggered on sessions start, but could also use "close_session" PAM_TYPE.
