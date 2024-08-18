@@ -29,6 +29,7 @@
 #========
 # v0.1 - use minecraft server as base
 # v0.2 - first version
+# v0.2b- disable running twice check, not stable
 
 
 #========
@@ -186,13 +187,13 @@ else
 fi
 
 # DUPLICATED?
-if [ $(pgrep -fc $(basename $0)) -ne 1 ]; then
-    # This is bootup script - but another running = yoikes, notify + exit
-    pushmessage="${msgheader} HELP!\nBox: `uname -n`\n$(basename $0)\nSTARTED ON\nBOOTUP !BUT!\nALREADY RUNNING\nEXITING...\nUser: $(whoami)"
-    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
-    f_log "2ND JOB EXITING - $pid shutdown.."
-    exit 1
-fi
+#if [ $(pgrep -fc $(basename $0)) -ne 1 ]; then
+#    # This is bootup script - but another running = yoikes, notify + exit
+#    pushmessage="${msgheader} HELP!\nBox: `uname -n`\n$(basename $0)\nSTARTED ON\nBOOTUP !BUT!\nALREADY RUNNING\nEXITING...\nUser: $(whoami)"
+#    f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_high}"
+#    f_log "2ND JOB EXITING - $pid shutdown.."
+#    exit 1
+#fi
 
 # DELAY
 [ ${rebooting} -eq 1 ] && sleep $seconds_bootup_delay && f_log "SLEPT - ${seconds_bootup_delay}"
