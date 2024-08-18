@@ -20,7 +20,7 @@ Create push message account + setup config as per steps here:   [common_setup](.
 sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
 ```
 ### 2:  Create notification script<br>
-* Common script is triggered by different Ubuntu login PAM (pluggable access modules)<br>
+* Common script is triggered by different Ubuntu login PAM (plugable access modules)<br>
 * Use following commands to create script as `/opt/uauto/login_warn/login_warn.sh`<br>
 * Create empty file with correct permissions (critical for security)
 
@@ -96,7 +96,7 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
 * add line at end + save:
 
    ```bash
-   session    optional     pam_exec.so /opt/my_scripts/login_warn.sh
+   session    optional     pam_exec.so /opt/uauto/login_warn/login_warn.sh
    ```
 <br>
 
@@ -110,7 +110,7 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
 * and line near end above final 3x @include calls:
 
    ```bash
-   session    optional   pam_exec.so    /opt/my_scripts/login_warn.sh
+   session    optional   pam_exec.so    /opt/uauto/login_warn/login_warn.sh
    ```
 <br>
 
@@ -124,5 +124,5 @@ sudo apt-get update && sudo apt-get upgrade && sudo apt install curl
 * add line near end (just above final @include common-session):
 
    ```bash
-   session optional        pam_exec.so /opt/my_scripts/login_warn.sh
+   session optional        pam_exec.so /opt/uauto/login_warn/login_warn.sh
    ```
