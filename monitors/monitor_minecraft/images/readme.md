@@ -1,1 +1,0 @@
-## Minecraft server message images
