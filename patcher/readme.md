@@ -36,7 +36,7 @@ Messages will provide
 * send tailscale version information
 * etc<br><br>
 <p float="left">
-  <img src="./images/sample_msgs1sml.png" width="40%" />
+  <img src="./images/patcher_standard.png" width="40%" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./images/patcher_rebooting.png" width="40%" />
 </p>
