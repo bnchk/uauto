@@ -4,9 +4,11 @@ Also configurable to monitor websites up, network drives online etc.<br>
 Example config: [monitor_config.py](./monitor_config.py)  <br><br>
 Example notifications (good and bad):<br>
 <p float="left">
-  <img src="./images/monitors_ok.png" width="33%" />
-  <img src="images/monitors_errors.png" width="33%" />
-  <img src="./images/monitors_failping.png" width="33%" />
+  <img src="./images/monitors_ok.png" width="30%" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="images/monitors_errors.png" width="30%" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="./images/monitors_failping.png" width="30%" />
 </p>
 
 ## SCRIPT STRUCTURE
