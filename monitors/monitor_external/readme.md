@@ -1,8 +1,13 @@
 # MONITOR - EXTERNAL
 A crashed/disconnected box can't notify of issues - so it is necessary to run other external monitoring to slice back through the environment from different directions providing a web of issue detection.<br>
-<br>
-Example config: [monitor_config.py](./monitor_config.py)  Also configurable to monitor websites up, network drives online etc.<br>
-<br>
+Also configurable to monitor websites up, network drives online etc.<br>
+Example config: [monitor_config.py](./monitor_config.py)  <br><br>
+Example notifications (good and bad):<br>
+<p float="left">
+  <img src="./images/monitors_ok.png" width="33%" />
+  <img src="images/monitors_errors.png" width="33%" />
+  <img src="./images/monitors_failping.png" width="33%" />
+</p>
 
 ## SCRIPT STRUCTURE
 The 2 python scripts are for linux/windows, plus extra batch file to schedule on windows:
