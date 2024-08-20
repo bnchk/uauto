@@ -1,18 +1,102 @@
 # MONITOR - EXTERNAL
-For automation to be robust, boxes external to the one being monitored must be used to look back at it.  Otherwise if you notifications originate from a machine that crashed, you would receive no warning.  This scripts perform that task, configurable for different locations so different network issues can also be detected.
+A crashed/disconnected box can't notify of issues - so it is necessary to run other external monitoring to slice back through the environment from different directions providing a web of issue detection.<br>
+<br>
+Also configurable to monitor websites up, network drives online etc.  Example config: [monitor_config.py](./monitor_config.py)<br>
+<br>
 
 ## SCRIPT STRUCTURE
-2 scripts are platform independant (+optional extra for windows):
+The 2 python scripts are for linux/windows, plus extra batch file to schedule on windows:
 * `monitor_config.py` - python script containing all variables/config
-* `monitor.py` - generic script driven by the config file
+* `monitor.py` - generic script same for any installation - only change the config
 * `monitor.bat` - windows only - used to call python/script when scheduled
+<br>
 
+## REQUIRED
 
-Config can be updated while leaving script running as it reloads it each check.
-There are 3 levels of configurable notification
-* 1 - critical - hourly message
-* 2 - fix_sometime - in daily message
-* 3 - supress/ignore any issue for now (but keep config record)
+| OS     | Required                      |
+| :----- | :---------------------------- |
+|Linux   | `sudo apt install python3-pip`|
+|Linux   | `pip3 install requests`       |
+|Windows | `pip3 install requests` (after python installed) |
+<br>
 
-The config file is intended to be the same for all running instances bar the "location".
-Windows bat file, need to edit location
+# CONFIGURATION
+* The monitor_config.py requires python syntax (main monitor.py script will call it)
+* Config can be updated while script is running no need to stop, as reloads each scan
+* That's unless in wait period between notifications due to recent error message + don't want to wait
+* Script can run online/manually if required - from command line:  python3 monitor.py
+* If unsure scan groups are processing as expected, use the testing variable in monitor.py
+   * `testing = 0` - no screen output, normal running mode
+   * `testing = 1` - prints to screen summary of process.  Run manually/online if testing
+<br>
+
+## CONFIGURATION - BASIC VARIABLES
+Basic variables are at the start of monitor_config.py.<br>
+
+These cover:<br>
+**`MONITOR_LOCATION`** - there are 4 setup for different locations/accesses that a monitor machine may have:
+   * INTERNAL - on Lan but not mapped drives, ideally connected to router (no switches inbetween), plus no VPN
+   * EXTERNAL  - outside network eg hosted.  On different power supply+network
+   * WINONLAN  - windows box on local network.  On VPN if self hosting + nodes on different VLAN
+   * TAILSCALE - on tailnet/secure network with ACL configured to see all boxes<br>
+
+**`SLEEP_PERIOD`** - seconds between next config load+rescan (default 300/6min)<br>
+
+**`HOUR_OF_DAY_FOR_LOW_PRIORITY_MSG`** - hour to send once a day message, will be within SLEEP_PERIOD time after it<br>
+
+**`USR_TOKEN`** - pushover user api key<br>
+
+**`API_TOKEN`** - pushover application api key<br>
+<br>
+
+## CONFIGURATION - SCAN GROUPS + DETAIL
+The different boxes and methods to remotely monitor them are detailed in monitor_config.py after the basic variables, in the form of python arrays.  If copying and pasting lines, ensure last array data record trailing comma missing (only).  The main script will notify of simple format errors, but not all syntax issues.
+
+**Priority** - each scan group has 3 levels of notification priority values (1,2,3):
+1. critical - hourly message
+2. fix_sometime - in daily message at hour you specify
+3. supress/ignore - leave record in config, but don't process it
+<br>
+
+### SCAN GROUP - INTERNAL_IPs
+Checked for `MONITOR_LOCATION = INTERNAL` + `MONITOR_LOCATION = WINONLAN`
+Fields:
+* `ip_address`
+* `device_type` - eg abbreviated rtr (router), sw(switch) or whatever suits
+* `shortname` - node name (intended to read from watchface)
+* `priority` - 1,2,3
+<br>
+
+### SCAN GROUP - EXTERNAL_IPs
+External - means external world facing address of box to be monitored.  To scan from on the box use the specific scripts.<br>
+The scan_groups <--> monitor_location here are more involved and originate from INTERNAL = no VPN, and WINONLAN:
+* `MONITOR_LOCATION = INTERNAL` - **partial check - only if** `SELF_HOSTING = 'N'` - due to inability to look inside own external ip address if on segrated VLANs
+* `MONITOR_LOCATION = WINONLAN` - checks everything
+* `MONITOR_LOCATION = TAILSCALE` - checks everything
+* `MONITOR_LOCATION = HOSTED` - not on local network, eg hosted - checks everything
+<br>
+Fields:
+* `ip_address`
+* `node_name`
+* `node_public_ip`
+* `node_port_number`
+* `detection type` - **www/json/port** - websites, json header, port open check
+* `priority` - 1,2,3
+<br>
+
+### SCAN GROUP - TAILSCALE
+Only checked for `MONITOR_LOCATION = TAILSCALE` - somewhere that has access to full tailscale network (can optionally hide reverse visibility from nodes using tailscale ACL).  To be merged with EXTERNAL_IPs group as currently only basic ping over tailscale.<br>
+Fields:
+* `project` - high level group, eg aya, wmc, iagon, etc
+* `ip_address` - tailscale ip address to scan
+* `node_name`
+* `priority` - 1,2,3
+<br>
+
+### SCAN GROUP - NETWORK SHARES
+Only checked for `MONITOR_LOCATION = WINONLAN` - purpose being to verify network availability, in case Windows box rebooted + drives locked = prevents backups etc.
+Fields:
+* `ip_address` - local network ip
+* `name` - name of windows box
+* `drive_share` - will be catenated onto ip address to check
+<br>
