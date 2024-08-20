@@ -25,11 +25,14 @@ Following is standard example of morning messages with:<br>
 
 
 ## Notes
+* Prometheus/Grafana are vastly more capable, with much deeper awareness of system state
 * Communication defaults are bare minimum, but can be tweaked via settings
 * All messages are designed to have gist conveyed within watchface size area
-* Not for complex boxes - eg building from source with dependencies, or running tight on RAM/CPU
-* Intended for simple boxes where you always click yes/defaults on everything
-* Prometheus/Grafana are vastly more capable, this is intended to complement that
+* Only for simple boxes where yes/defaults on everything
+* Not for complex boxes - eg:
+   *  building from source with dependencies
+   *  running tight on RAM/CPU
+   *  have time dependencies on reboot schedule eg block production
 * Automated scripting requires security attention to prevent facilitating privilege escalation capability
-* Use on devnet/testing until comfortable they are ok/use at own risk etc
+* Don't use on production/incentivised systems which having tried devnet/test first/use at own risk etc
 * Feedback/suggestions welcomed
