@@ -9,15 +9,17 @@ Watches over state of World Mobile AYA chain and updates via push message:
 <br>
 
 <p float="left">
-  <img src="./images/aya_started.png" width="33%" />
+  &nbsp;&nbsp;
+  <img src="./images/monitor_aya_started.png" width="33%" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./images/aya_slideovers.png" width="33%" />
+  <img src="./images/monitor_aya_slideovers.png" width="33%" />
 </p>
 <br>
 <p float="left">
-  <img src="./images/aya_help_peers.png" width="33%" />
+  &nbsp;&nbsp;
+  <img src="./images/monitor_aya_help_peers.png" width="33%" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./images/aya_help_tip.png" width="33%" />
+  <img src="./images/monitor_aya_help_tip.png" width="33%" />
 </p>
 <br>
 
