@@ -18,6 +18,7 @@ Following is standard example of morning messages with:<br>
 * Monitors all ok
 <br><br>
 <p float="left">
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./common_setup/images/pushover_main.png" width="30%" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./common_setup/images/uauto_happy.png" width="50%" />
