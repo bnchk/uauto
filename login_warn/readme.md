@@ -5,12 +5,14 @@ Sends push message whenever a logon (via ssh/terminal/desktop) containing:<br>
 * user logged on as
 * timestamp<br><br>
 <p float="left">
-  <img src="images/login_aya.png" width="49%" />
+  &nbsp;&nbsp;
+  <img src="../common_setup/images/login_aya.png" width="49%" />
 </p><br>
 <p float="left">
-  <img src="images/login_minecraft.png" width="45%" />
+  &nbsp;&nbsp;
+  <img src="../common_setup/images/login_minecraft.png" width="45%" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="images/login_wm.png" width="45%" />
+  <img src="../common_setup/images/login_wm.png" width="45%" />
 </p><br><br>
 
 ## COMMON SETUP - Push Message Account + Config file
