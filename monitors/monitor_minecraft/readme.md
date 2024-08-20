@@ -4,7 +4,8 @@
 * Default configuration is silent messages if all ok, and saves pinging for updated version available or issue detected
 <br>
 <p float="left">
-  <img src="./images/minecraft.png" width="49%" />
+  &nbsp;&nbsp;
+  <img src="../../common_setup/images/monitor_minecraft.png" width="49%" />
 </p>
 <br>
 
