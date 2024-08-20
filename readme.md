@@ -1,5 +1,5 @@
 # uauto - ubuntu automation<br>
-Scripts to automate simple nodes, covering:<br>
+Scripts written while learning about hosting to automate simple nodes, covering:<br>
 * [logon notifications](./login_warn)
 * [patching](./patcher) - keep node up to date
 * [monitoring on node](./monitors)  - does node seem stable
@@ -32,4 +32,4 @@ Following is standard example of morning messages with:<br>
 * Prometheus/Grafana are vastly more capable, this is intended to complement that
 * Automated scripting requires security attention to prevent facilitating privilege escalation capability
 * Use on devnet/testing until comfortable they are ok/use at own risk etc
-* Any feedback/suggestions welcomed
+* Feedback/suggestions welcomed
