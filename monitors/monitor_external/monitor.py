@@ -3,14 +3,25 @@
 
 #   --------------------
 #   |  MONITORING JOB  |
-#   |  MONITORING JOB  |  v0.32
+#   |  MONITORING JOB  |  v0.38
 #   |  MONITORING JOB  |
 #   --------------------
 
+#--------
+# NOTES - run online first to see if any config script errors, can also set testing variable to 1 for help debugging 
+#       - take care with user linux service setup as, as needs to relate to user pip3 install requests was run as
+
+
 #-------
-# TODO - security folders recency check
+# TODO - check import config module can be found prior to import eg https://stackoverflow.com/questions/14050281/how-to-check-if-a-python-module-exists-without-importing-it#14050282
+#      - All OK msg - at end add list of what was parsed successfully
 #      - startup delay into config for initial run for slow machines like RPi
+#      - projects like encoins only respond to curl command, not external pings..  Maybe add.
 #      - run as Windows service so don't have to logon, but may need python installed generically
+#      - online storage option for config download to save updating all monitors, but would have to leave location etc unchanged..
+#        - split out location + apikeys as never reload + download refresh the rest c&c style, should work
+#      - service needs to have User=root to find python modules, next time maybe plan who they are installed as
+#      - security camera folders recency check = will ensure they are working
 
 #-----------
 # REQUIRED - install Requests module:  
@@ -34,9 +45,8 @@
 #              if task fails restart every hour
 #      Linux - create systemd service - monitor.service
 #            - sudo systemctl status monitor.service -> should not exist already
-#            - sudo mkdir -p /opt/my_scripts/monitor && sudo chmod 700 /opt/my_scripts/monitor \
-#                 && sudo chown <user> /opt/my_scripts/monitor
-#            - cp monitor.py and monitor_config.py into /opt/my_scripts/monitor
+#            - sudo mkdir -p /opt/uauto/monitor && sudo chmod 755 /opt/uauto/monitor && sudo chown <user> /opt/uauto/monitor
+#            - cp monitor.py and monitor_config.py into /opt/uauto/monitor
 #            - chmod 700 *py
 #            - sudo vi /etc/systemd/system/monitor.service
 #              [Unit]
@@ -45,12 +55,13 @@
 #              After=network.target
 #              
 #              [Service]
-#              User=<user>
+#              User=<user_python_modules_installed_as-maybe_root>
 #              Type=simple
 #              Restart=always
 #              RestartSec=60
-#              WorkingDirectory=/opt/my_scripts/monitor
-#              ExecStart=/usr/bin/python3 /opt/my_scripts/monitor/monitor.py
+#              WorkingDirectory=/opt/uauto/monitor
+#              StandardOutput=file:/opt/uauto/monitor/stdoutput.log
+#              ExecStart=/usr/bin/python3 /opt/uauto/monitor/monitor.py
 #              ExecReload=/bin/kill -s HUP $MAINPID
 #              KillSignal=SIGINT
 #              
@@ -101,6 +112,28 @@ def ping(ip_address):
     return "OK"
 
 
+#-------------
+# IS PORT OPEN
+#-------------
+import socket
+def is_port_open(host, port):
+    # credit: https://www.codeease.net
+    try:
+        # create a socket object
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # set a timeout of 1 second
+        s.settimeout(1)
+        # try to connect to the remote host and port
+        s.connect((host, port))
+        # close the socket
+        s.close()
+        # return True if the connection was successful
+        return True
+    except:
+        # return False if the connection was unsuccessful
+        return False
+
+
 #    ============
 #    ||        ||
 #    ||  MAIN  ||
@@ -146,7 +179,7 @@ while True:
 
 
     #---------------------------
-    # PING INTERNAL IP ADDRESSES - some of these take 2 goes to wake up!
+    # PING INTERNAL IP ADDRESSES - some of these take 2 goes to get their ship together!
     if monitor_config.MONITOR_LOCATION == 'INTERNAL' or monitor_config.MONITOR_LOCATION == 'WINONLAN':
         current_line = 0
         for z in monitor_config.INTERNAL_IPs:
@@ -160,7 +193,7 @@ while True:
                     if testing == 1: print('INTERNAL: ' + PING_DEVICE_DESC)
                     ping_result = ping(PING_IP)
                     if ping_result.startswith('ERR') or ping_result.startswith('FAIL'):
-                        # try second time just in case, some switches wake up after first go
+                        # try second time just in case, some switches are working, but only respond to ping after first go!
                         time.sleep(3)
                         ping_result = ping(PING_IP)
                         if ping_result.startswith('ERR') or ping_result.startswith('FAIL'):
@@ -173,7 +206,7 @@ while True:
 
 
     #---------------------------
-    # EXTERNAL LIVELINESS CHECKS - check from all locations
+    # EXTERNAL LIVELINESS CHECKS - check from all locations (bar INTERNAL for SELF_HOSTED boxes)
     # input format:  project, boxname, ip, port, responsetype (json,www), priority (1-critical, 2-note infrequently, 3-ignore/off for now) 
     # There is much stuffing about here as requests.get fails on website with no json/maybe header not correct so valid built into error trap as well
     try:
@@ -181,37 +214,69 @@ while True:
         current_line = 0
         for currently_checking in monitor_config.EXTERNAL_IPs:
             current_line += 1
-            if len(currently_checking) == 6: #config field count ok
+            if len(currently_checking) == 7: #config field count ok
                 # Break out config fields into variables
-                PROJECT = currently_checking[0]
+                PROJECT = currently_checking[0].lower()
                 CHECK_BOX_NAME = currently_checking[1]
                 CHECK_ADDRESS = currently_checking[2]
                 CHECK_PORT = currently_checking[3]
-                EXPECTED_RESPONSE = currently_checking[4]
-                CHECK_PRIORITY = currently_checking[5]   # 1-critical, 2-info, 3-ignore
-                #CHECK_ADDRESS = CHECK_ADDRESS if CHECK_ADDRESS.startswith('http') else 'http://' + CHECK_ADDRESS
-                if not CHECK_ADDRESS.startswith('http'): CHECK_ADDRESS = "http://" + CHECK_ADDRESS
-                #CHECK_URL = CHECK_ADDRESS if CHECK_PORT == 0 else CHECK_ADDRESS + ':' + str(CHECK_PORT)
-                if CHECK_PORT == 0: CHECK_URL = CHECK_ADDRESS
-                else: CHECK_URL = CHECK_ADDRESS + ':' + str(CHECK_PORT)
-                if CHECK_PRIORITY != 3:
-                    try:
-                        if testing == 1: print('EXTERNAL: ' + CHECK_URL)
-                        response = requests.get(CHECK_URL)  # can print(response.status_code) or print(response.json())
-                        if testing == 1: print('  Stat_cd: ' + str(response.status_code) + ' Json: ' + str(response.json()))
-                        if (EXPECTED_RESPONSE == 'json' and 'application/json' not in response.headers.get('Content-Type','')) or ((EXPECTED_RESPONSE == 'www' and response.status_code != 200)):
+                EXPECTED_RESPONSE = currently_checking[4].lower()
+                SELF_HOSTED = currently_checking[5].lower()   
+                CHECK_PRIORITY = currently_checking[6]   # 1-critical, 2-info, 3-ignore
+                if not EXPECTED_RESPONSE == 'ping' and not EXPECTED_RESPONSE == 'port' and not CHECK_ADDRESS.startswith('http'):
+                    CHECK_ADDRESS = "http://" + CHECK_ADDRESS
+                if CHECK_PORT == 0 or EXPECTED_RESPONSE == 'ping' or EXPECTED_RESPONSE == 'port':
+                    CHECK_URL = CHECK_ADDRESS
+                else:
+                    CHECK_URL = CHECK_ADDRESS + ':' + str(CHECK_PORT)
+                if not (CHECK_PRIORITY == 3 or (monitor_config.MONITOR_LOCATION == 'INTERNAL' and SELF_HOSTED == 'y')): 
+                    if testing == 1: print('EXTERNAL: ' + CHECK_BOX_NAME + ' ' + CHECK_URL + ' ' + EXPECTED_RESPONSE)
+                    if EXPECTED_RESPONSE == 'ping': # does it respond to ping test
+                        ping_result = ping(CHECK_URL)
+                        if ping_result.startswith('ERR') or ping_result.startswith('FAIL'):
                             if CHECK_PRIORITY == 1: MESSAGE_URGENT_Q += 1
                             else: MESSAGE_INFO_ONLY_Q += 1
-                            MESSAGE_X = MESSAGE_X + '\n' + CHECK_BOX_NAME + '-FAIL-' + EXPECTED_RESPONSE
-                    except Exception as error:
-                        # command fell over = not good, but does do this even when valid because no json data for www
-                        if testing == 1: print('  EXTERNAL FAILED: >' + CHECK_URL + '<,', error)
-                        if testing == 1: print('     likely on json expectations-but actual response cd is(200=ok): ' + str(response.status_code))
-                        if ((EXPECTED_RESPONSE == 'www' and response.status_code != 200)):
-                            # OK really did crap itself
+                            MESSAGE_X = MESSAGE_X + '\nEXTNL:' + CHECK_BOX_NAME + '-FAIL-' + EXPECTED_RESPONSE
+                            if testing == 1: print('EXTERNAL: ' + CHECK_URL + ' ' + EXPECTED_RESPONSE + ' FAIL')
+                        else: 
+                            if testing == 1: print('EXTERNAL: ' + CHECK_URL + ' ' + EXPECTED_RESPONSE + ' PASS')
+                    elif EXPECTED_RESPONSE == 'port': # Check socket is responding/port open
+                        if not is_port_open(CHECK_URL, CHECK_PORT):
                             if CHECK_PRIORITY == 1: MESSAGE_URGENT_Q += 1
                             else: MESSAGE_INFO_ONLY_Q += 1
-                            MESSAGE_X = MESSAGE_X + '\n' + CHECK_BOX_NAME + '-FAIL-' + EXPECTED_RESPONSE
+                            MESSAGE_X = MESSAGE_X + '\nEXTNL:' + CHECK_BOX_NAME + '-FAIL-' + EXPECTED_RESPONSE + '-' + str(CHECK_PORT)
+                            if testing == 1: print('EXTERNAL: ' + CHECK_URL + ' ' + EXPECTED_RESPONSE + '-' + str(CHECK_PORT) + ' FAIL')
+                        else: 
+                            if testing == 1: print('EXTERNAL: ' + CHECK_URL + ' ' + EXPECTED_RESPONSE + '-' + str(CHECK_PORT) + ' PASS')
+                    else: # start sifting through error trap for disguised valid responses
+                        try:
+                            response = requests.get(CHECK_URL, timeout=9)  # can print(response.status_code) or print(response.json())
+                            if testing == 1: print('  Stat_cd: ' + str(response.status_code) + ' Json: ' + str(response.json()))
+                            if (EXPECTED_RESPONSE == 'json' and 'application/json' not in response.headers.get('Content-Type','')) or ((EXPECTED_RESPONSE == 'www' and response.status_code != 200)):
+                                if CHECK_PRIORITY == 1: MESSAGE_URGENT_Q += 1
+                                else: MESSAGE_INFO_ONLY_Q += 1
+                                MESSAGE_X = MESSAGE_X + '\nEXTNL:' + CHECK_BOX_NAME + '-FAIL-' + EXPECTED_RESPONSE
+                        except requests.exceptions.Timeout:
+                            if testing == 1: print('  EXTERNAL FAILED - TIMEOUT: ' + CHECK_URL)
+                            if CHECK_PRIORITY == 1: MESSAGE_URGENT_Q += 1
+                            else: MESSAGE_INFO_ONLY_Q += 1
+                            MESSAGE_X = MESSAGE_X + '\nEXTNL:' + CHECK_BOX_NAME + '-TIMEOUT-' + EXPECTED_RESPONSE
+                        except requests.exceptions.ConnectionError:
+                            if testing == 1: print('  EXTERNAL FAILED - CONNERR: ' + CHECK_URL)
+                            if not (PROJECT == 'aya' and EXPECTED_RESPONSE == 'json'):
+                                if CHECK_PRIORITY == 1: MESSAGE_URGENT_Q += 1
+                                else: MESSAGE_INFO_ONLY_Q += 1
+                                MESSAGE_X = MESSAGE_X + '\nEXTNL:' + CHECK_BOX_NAME + '-CONNERR-' + EXPECTED_RESPONSE
+                        except Exception as error:  # Not always an error, dig more.. www+200 here is still ok
+                            if testing == 1: print('  EXTERNAL ' + EXPECTED_RESPONSE + ' MAYBE FAILED: >' + CHECK_URL + '<,', error)
+                            if testing == 1: print('    if www and response 200 even tho in error trap is still ok')
+                            if testing == 1: print('    because of json expectations in check prior, so: CHECK TYPE=' + EXPECTED_RESPONSE + ', RC=' + str(response.status_code))
+                            if ((EXPECTED_RESPONSE == 'www' and response.status_code != 200)):
+                                # OK really did crap itself
+                                if testing == 1: print('OK - REALLY DID CRAP ITSELF')
+                                if CHECK_PRIORITY == 1: MESSAGE_URGENT_Q += 1
+                                else: MESSAGE_INFO_ONLY_Q += 1
+                                MESSAGE_X = MESSAGE_X + '\nEXTNL:' + CHECK_BOX_NAME + '-FAIL-' + EXPECTED_RESPONSE
             else: #Config error
                 MESSAGE_INFO_ONLY_Q += 1
                 MESSAGE_X = MESSAGE_X + '\nConfigErr Extnl line' + str(current_line)
