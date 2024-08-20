@@ -3,13 +3,14 @@ Relies on unattended-updates for background silent patching, then manages reboot
 ### Overview:<br>
 * Tested on Ubuntu 22.04
 * Only for simple boxes, where if prompted you always select the defaults
-* Requires needsupdate + unattended-updates packages
+* Requires needsupdate + unattended-updates packages (both pretty standard)
 * Does not reboot unless unattended updates flags it as required (or user set number of days since last reboot is exceeded)
 * Reboots (and applies any other updates queued) when unattended updates has flagged reboot is required
+* Applies all updates including dist-upgrade
 * Will attempt to stop service on config before updating/rebooting
 * Push message account + config has to be setup per [common_setup](../common_setup)
 * Script whitelisted for non sudo password prompting so it can be fully automated
-   * This requires careful attention to permissions for security
+   * This requires attention to permissions for security
 * OpenSSH server and tailscale are updated immediately if patch available
 * GRUB (bootloader) updates will NOT be applied + script will not reboot + will message to update manually
 * Requires suppression of all pop-up prompts that would halt automation (will default to agree with everything)
@@ -29,7 +30,7 @@ Relies on unattended-updates for background silent patching, then manages reboot
 <br>
 
 ### SAMPLE MESSAGES
-Messages will provide 
+Messages provide:
 * counts of security+standard patches broken into standard and dist groups
 * days since last reboot
 * whether reboot was required
