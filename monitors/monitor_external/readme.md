@@ -2,13 +2,14 @@
 A crashed/disconnected box can't notify of issues - so it is necessary to run other external monitoring to slice back through the environment from different directions providing a web of issue detection.<br>
 Also configurable to monitor websites up, network drives online etc.<br>
 Example config: [monitor_config.py](./monitor_config.py)  <br><br>
-Example notifications (good and bad):<br>
+Example notifications (good news and bad):<br>
 <p float="left">
-  <img src="./images/monitors_ok.png" width="30%" />
+  &nbsp;&nbsp;
+  <img src="../../common_setup/images/monitor_external_ok.png" width="30%" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="images/monitors_errors.png" width="30%" />
+  <img src="../../common_setup/images/monitor_external_errors.png" width="30%" />
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="./images/monitors_failping.png" width="30%" />
+  <img src="../../common_setup/images/monitor_external_failping.png" width="30%" />
 </p>
 
 ## SCRIPT STRUCTURE
@@ -122,7 +123,8 @@ Use Windows task scheduler to create a task as per regular usage.  For this gene
 <br>
 This will start a DOS window, which has to be left open:<br>
 <p float="left">
-  <img src="./images/windows_batch.jpg" width="50%" />
+  &nbsp;&nbsp;
+  <img src="../../common_setup/images/monitor_external_windows_batch.jpg" width="50%" />
 </p><br>
 
 ### UBUNTU
