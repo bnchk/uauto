@@ -23,7 +23,7 @@ Following is standard example of morning messages with:<br>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <img src="./common_setup/images/uauto_happy.png" width="50%" />
 </p>
-
+<br><br>
 
 ## Notes
 * Prometheus/Grafana are vastly more capable, with much deeper awareness of system state
@@ -36,4 +36,4 @@ Following is standard example of morning messages with:<br>
    *  have time dependencies on reboot schedule eg block production
 * Automated scripting requires security attention to prevent facilitating privilege escalation capability
 * Don't use on production/incentivised systems which having tried devnet/test first/use at own risk etc
-* Feedback/suggestions welcomed
+* Feedback/suggestions welcome
