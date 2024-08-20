@@ -29,7 +29,7 @@ Following is standard example of morning messages with:<br>
 * All messages are designed to have gist conveyed within watchface size area
 * Not for complex boxes - eg building from source with dependencies, or running tight on RAM/CPU
 * Intended for simple boxes where you always click yes/defaults on everything
-* Prometheus/Grafana are vastly more capabile, plus have access to deep node stats
+* Prometheus/Grafana are vastly more capable, this is intended to complement that
 * Automated scripting requires security attention to prevent facilitating privilege escalation capability
 * Use on devnet/testing until comfortable they are ok/use at own risk etc
-* Any feedback/suggestions welcomed<br>
+* Any feedback/suggestions welcomed
