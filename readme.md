@@ -1,4 +1,4 @@
-# uauto - ubuntu automation<br>
+# uauto - Ubuntu Automation<br>
 Scripts written while learning about hosting to automate simple nodes, covering:<br>
 * [logon notifications](./login_warn)
 * [patching](./patcher) - keep node up to date
