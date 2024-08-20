@@ -10,7 +10,7 @@ Scripts to automate simple nodes, covering:<br>
 ## Push Messages
 Message levels are configurable, but default only 1 notifications per monitors each morning.
 If something goes wrong, messages are sent within few minutes from monitors/nodes and continue to be informed hourly until it is resolved.
-Daily summary messages are sent from each node under ok running, but default is silent.  They can be found in push message app if required, or turned to ping as they arrive.<br>
+Daily summary messages are sent from each node under ok running, but default is silent.  They can be found in push message app if required, or set to ping as they arrive.<br>
 <br>
 Following is standard example of morning messages with:<br>
 * Iagon node updating tailscale (no reboot required)
