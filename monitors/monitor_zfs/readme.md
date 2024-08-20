@@ -20,5 +20,10 @@ add a line at end to suit your preference eg daily 6am:<br>
 Always make sure the permissions for the scheduled script are such that if running as privileged user, no lower level user has permissions to edit the automated script and add a line to increase their privilege:<br>
 eg `chmod 700 /opt/uauto/monitor_zfs/monitor_zfs.sh`<br><br>
 Messages are designed to fit first line/summary on watch face.<br>
-Following is full message in pushover app when half of raid1 mirror failed in Proxmox server called poxy1:<br><br>
-![example](./images/zfs_fail_msg.png) <br>
+Following is full message in pushover app when half of raid1 mirror failed in Proxmox server called poxy1:<br>
+<br>
+
+<p float="left">
+  &nbsp;&nbsp;&nbsp;&nbsp
+  <img src="../../common_setup/images/monitor_zfs_fail_msg.png" width="40%" />
+</p>
