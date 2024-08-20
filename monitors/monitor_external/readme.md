@@ -1,7 +1,7 @@
 # MONITOR - EXTERNAL
 A crashed/disconnected box can't notify of issues - so it is necessary to run other external monitoring to slice back through the environment from different directions providing a web of issue detection.<br>
 <br>
-Also configurable to monitor websites up, network drives online etc.  Example config: [monitor_config.py](./monitor_config.py)<br>
+Example config: [monitor_config.py](./monitor_config.py)  Also configurable to monitor websites up, network drives online etc.<br>
 <br>
 
 ## SCRIPT STRUCTURE
@@ -17,7 +17,8 @@ The 2 python scripts are for linux/windows, plus extra batch file to schedule on
 | :----- | :---------------------------- |
 |Linux   | `sudo apt install python3-pip`|
 |Linux   | `pip3 install requests`       |
-|Windows | `pip3 install requests` (after python installed) |
+|Windows | install python [python.org/downloads](https://www.python.org/downloads/) |
+|Windows | `pip3 install requests` |
 <br>
 
 # CONFIGURATION
@@ -25,9 +26,9 @@ The 2 python scripts are for linux/windows, plus extra batch file to schedule on
 * Config can be updated while script is running no need to stop, as reloads each scan
 * That's unless in wait period between notifications due to recent error message + don't want to wait
 * Script can run online/manually if required - from command line:  python3 monitor.py
-* If unsure scan groups are processing as expected, use the testing variable in monitor.py
+* To verify scan groups are processing as expected, use the testing variable in monitor.py + run from command line
    * `testing = 0` - no screen output, normal running mode
-   * `testing = 1` - prints to screen summary of process.  Run manually/online if testing
+   * `testing = 1` - prints to screen summary of process.  Run manually/online only:  `python3 monitor.py`
 <br>
 
 ## CONFIGURATION - BASIC VARIABLES
@@ -35,10 +36,10 @@ Basic variables are at the start of monitor_config.py.<br>
 
 These cover:<br>
 **`MONITOR_LOCATION`** - there are 4 setup for different locations/accesses that a monitor machine may have:
-   * INTERNAL - on Lan but not mapped drives, ideally connected to router (no switches inbetween), plus no VPN
-   * EXTERNAL  - outside network eg hosted.  On different power supply+network
-   * WINONLAN  - windows box on local network.  On VPN if self hosting + nodes on different VLAN
-   * TAILSCALE - on tailnet/secure network with ACL configured to see all boxes<br>
+   * **INTERNAL** - on Lan but not mapped drives, ideally connected to router (no switches inbetween), plus no VPN
+   * **HOSTED**  - outside network eg hosted.  On different power supply+network
+   * **WINONLAN**  - windows box on local network.  On VPN if self hosting + nodes on different VLAN
+   * **TAILSCALE** - on tailnet/secure network with ACL configured to see all boxes<br>
 
 **`SLEEP_PERIOD`** - seconds between next config load+rescan (default 300/6min)<br>
 
@@ -61,14 +62,14 @@ The different boxes and methods to remotely monitor them are detailed in monitor
 ### SCAN GROUP - INTERNAL_IPs
 Checked for `MONITOR_LOCATION = INTERNAL` + `MONITOR_LOCATION = WINONLAN`
 Fields:
-* `ip_address`
+* `ip_address` - for local scans, on same subnet
 * `device_type` - eg abbreviated rtr (router), sw(switch) or whatever suits
 * `shortname` - node name (intended to read from watchface)
 * `priority` - 1,2,3
 <br>
 
 ### SCAN GROUP - EXTERNAL_IPs
-External - means external world facing address of box to be monitored.  To scan from on the box use the specific scripts.<br>
+External - means external public world facing address of node to be monitored.  To scan from on the box use the specific project scripts.<br>
 The scan_groups <--> monitor_location here are more involved and originate from INTERNAL = no VPN, and WINONLAN:
 * `MONITOR_LOCATION = INTERNAL` - **partial check - only if** `SELF_HOSTING = 'N'` - due to inability to look inside own external ip address if on segrated VLANs
 * `MONITOR_LOCATION = WINONLAN` - checks everything
@@ -100,3 +101,57 @@ Fields:
 * `name` - name of windows box
 * `drive_share` - will be catenated onto ip address to check
 <br>
+
+## SCHEDULING
+Run under Windows Task Manager, and set up a service on Ubuntu.  Make sure Required steps are completed first, and have testing online from python command line.<br>
+<br>
+
+### WINDOWS
+Copy the 3 files into a folder eg C:Temp\_Scheduled_tasks\monitor
+* [monitor.bat](./monitor.bat) - windows batch file to initiate python
+* [monitor.py](./monitor.py) - called by batch file
+* [monitor_config.py](./monitor_config.py) - called by monitor.py<br>
+<br>
+Use Windows task scheduler to create a task as per regular usage.  For this generation trigger by windows user logon (not pc startup - until rewritten as a windows service).<br>
+<br>
+
+### UBUNTU
+Create as a systemd service as per following or similar:<br>
+* `sudo mkdir -p /opt/uauto/monitor && sudo chmod 755 /opt/uauto/monitor`<br>
+* Copy 2 python files into a folder eg /opt/uauto/monitor<br>
+   * [monitor.py](./monitor.py) - main script
+   * [monitor_config.py](./monitor_config.py) - called by monitor.py<br>
+* `chmod 700 *py`
+* `sudo vi /etc/systemd/system/monitor.service`
+* paste in:
+    ```bash
+     Description=Monitor service
+     #After=multi-user.target
+     After=network.target
+    
+     [Service]
+     User=<user_python_modules_installed_as-maybe_root>
+     Type=simple
+     Restart=always
+     RestartSec=60
+     WorkingDirectory=/opt/uauto/monitor
+     StandardOutput=file:/opt/uauto/monitor/stdoutput.log
+     ExecStart=/usr/bin/python3 /opt/uauto/monitor/monitor.py
+     ExecReload=/bin/kill -s HUP $MAINPID
+     KillSignal=SIGINT
+     
+     [Install]
+     WantedBy=multi-user.target
+     ```
+* change the user in above, _possibly_ will have to be root depending on how python was installed. Either was access to scripts needed total attention for access restriction
+* start it:
+     ```bash
+     sudo systemctl daemon-reload && sudo systemctl enable monitor.service && \
+     sudo systemctl start monitor.service && systemctl status monitor.service
+     ```
+
+
+
+
+
+
