@@ -111,9 +111,12 @@ Copy the 3 files into a folder eg C:Temp\_Scheduled_tasks\monitor
 * [monitor.bat](./monitor.bat) - windows batch file to initiate python
 * [monitor.py](./monitor.py) - called by batch file
 * [monitor_config.py](./monitor_config.py) - called by monitor.py<br>
-<br>
 Use Windows task scheduler to create a task as per regular usage.  For this generation trigger by windows user logon (not pc startup - until rewritten as a windows service).<br>
 <br>
+This will start a DOS window, which has to be left open:<br>
+<p float="left">
+  <img src="./images/windows_batch.jpg" width="50%" />
+</p><br>
 
 ### UBUNTU
 Create as a systemd service as per following or similar:<br>
@@ -143,15 +146,9 @@ Create as a systemd service as per following or similar:<br>
      [Install]
      WantedBy=multi-user.target
      ```
-* change the user in above, _possibly_ will have to be root depending on how python was installed. Either was access to scripts needed total attention for access restriction
+* change the user in above, _possibly_ will have to be root depending on how python was installed. Restrict access to scheduled scripts running with elevated privileges
 * start it:
      ```bash
      sudo systemctl daemon-reload && sudo systemctl enable monitor.service && \
      sudo systemctl start monitor.service && systemctl status monitor.service
      ```
-
-
-
-
-
-
