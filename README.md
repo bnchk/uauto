@@ -1,11 +1,11 @@
 # uauto - Ubuntu Automation<br>
 Scripts written while learning about hosting to automate simple nodes, covering:<br>
-* [logon notifications](./login_warn)
+* [logon warn](./login_warn) - immediate message on ssh/terminal/gui logons
 * [patching](./patcher) - keep node up to date
 * [monitoring on node](./monitors)  - does node seem stable
 * [monitoring from externally](./monitors/monitor_external) - is node visible/responding
 * [zfs raid pool monitoring](./monitors/monitor_zfs) - drive failures
-* communications - via push message ([once off $5 account](https://github.com/bnchk/UbuntuAutomation/tree/main/push-message-setup)) - issues/daily summary/whats happening/manual help needed/etc<br>
+* [push messages](https://github.com/bnchk/UbuntuAutomation/tree/main/push-message-setup) - via once off $5 pushover account - issues/daily summary/whats happening/manual help needed/etc<br>
 <br><br>
 ## Push Messages
 Message levels are configurable, but default only 1 notifications per monitors each morning.
