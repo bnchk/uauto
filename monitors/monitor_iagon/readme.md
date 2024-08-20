@@ -3,6 +3,7 @@
 * runs as a service monitoring iagon and restarting it if unresponsive
 * sends a status update once a day (silent if all ok)
 * pings notification whenever anything amiss and what it is doing to rectify
+* checks against github for updated node versions, plus automatically upgrades
 <br>
 
 ### THIS PRESUMES:
