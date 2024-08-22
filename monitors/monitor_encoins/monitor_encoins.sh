@@ -2,6 +2,7 @@
 #===============
 # ENCS MONITOR - light relay autoupdate + status notifications via push message
 #===============
+#    - NB requires BASH not SH
 #    - sent via pushover.net app (free trial/$5usd forever /device)
 #    - create specific api key for encoins(+optionally load logo thumbnail)
 #    - sends hourly message if node failed
@@ -32,13 +33,16 @@
 # v0.3 - fix package missing checks bug
 # v0.4 - notification on startup
 # v0.5 - auto update capability + simplify log variables + update functions
-# v0.6 - typo only at this point - delete this note
-# v0.6.1 - notes only about where to put a revert funtion from 20240429
-#        - command to get service PID:  service_pid=`systemctl show --property MainPID --value node.service`
+# v0.6.1 - - notes only about where to put a revert funtion from 20240429
+# v0.6.2 - disable auto update as it broke with different config for next gen node
+#      - command to get service PID:  service_pid=`systemctl show --property MainPID --value node.service`
+#      - Get delegation amount using carrotshades technique
+#      - v1.2.6 required new folders /home/encs/encoins/config ==>> /home/encs/encoins/mainnet/apps/encoins
+#                                    /home/encs/encoins/bin    ==>> /home/encs/.local/bin
 
 #-----
-# TODO - 20240429 - ERR5 occurred, but would have been fixed with revert function
-#      - add delegation amount into daily message, maybe via maestro chain indexer query?
+# TODO - Put delegation over/under into status message at top, eg START OK-> STARTUP UNDEL/STARTUP OVERDEL, maybe when v2 comes out
+#      - 20240429 - ERR5 occurred, but would have been fixed with revert function
 #      - automatic update delay - allow update delay after seeing new relay version (jic in case team patch it) = send notification saying y of x days delay b4 udpate + days changed counter
 #                               - if a different version seen reset days counter
 #      - secrets parsing - remove up to each lines first hash (in case comment added at end)
@@ -47,9 +51,9 @@
 #---------------
 # USER VARIABLES - change to suit
 #---------------
-enable_auto_update="y"                       # Can be: n=nothanks, m=manual (ie notify only), y=update it automatically if possible
-exe_folder="/home/encs/encoins/bin"          # folder containing binary
-start_folder="/home/encs/encoins/config"     # folder with config service starts in
+enable_auto_update="m"                       # Can be: n=nothanks, m=manual (ie notify only), TODO y disabled post v1.2.6 (y=update it automatically if possible)
+exe_folder="/home/encs/.local/bin"           # folder containing binary
+start_folder="/home/encs/encoins/mainnet/apps/encoins"     # folder with config service starts in
 secrets_file="${start_folder}/secrets.txt"   # path to secrets file
 time_for_daily_msg=820                       # approx time to check for updates and send daily ok message, 24hr format no colon, script will autoadd leading zero
 #Log file - resuse encoins log folder
@@ -57,6 +61,9 @@ log_file="${start_folder}/logs/monitor.log"  # log folder should exist as encoin
 #autoupdate folder - will autocreate if needed
 archive_folder="${start_folder}/archived"    # archived folder - autoupdate=y -> store old binaries in case of reversion
 sleep_b4_service_restarts=60                 # seconds that will bracket service restart trigger (if using a service/systemd)
+#For Delegation calculation - requires known encs delegated balance and public key hash, then can work out proportion based on 1A reward payment (credit Carrotshade:)
+known_delegation_pkh="4904e933f8de045746898f23b6e29c46a4dd2e7fe355e3b417ecc9a3" # My owning wallet with 1258.8 encs
+known_delegation_bal=1258.8                                                     # how many ENCS in wallet
 
 
 #-----------------
@@ -79,6 +86,27 @@ _pushmessage() {
         usrtoken="${2}"
         pushmessage="${3}"
         [ $# -eq 4 ] && priority="${4}" || priority=0
+
+		#INSERT DELEGATION BALANCE INTO MESSAGE
+        delbal=$(_delegation_balance)
+        if [[ $delbal =~ [^[:digit:]] ]]; then
+            delbal="failed calc"
+        else
+            if [[ $delbal -lt 100000 ]]; then
+                dispbal="UNDER ${delbal}!"
+                delbalpriority=1
+            elif [[ $delbal -gt 110000 ]]; then
+                dispbal="OVER ${delbal}!"
+                delbalpriority=1
+            else
+                dispbal="OK $delbal"
+                delbalpriority=0
+            fi
+        fi
+
+        # IS DELEGATION BALANCE PRIORITY HIGHER?
+        [ $delbalpriority -gt $priority ] && priority=$delbalpriority
+		pushmessage="${pushmessage}\nDelegatn: ${dispbal}"
         echo "`date +"%Y%m%d_%H%M:%S"` - MSGLOG: ${pushmessage}" >> $log_file
         # construct push so it will timeout/never fail, reliant on external process
         # and don't want job to hang or crash for any reason beyond my control
@@ -139,6 +167,32 @@ _failed_relay_check() {
 }
 
 
+#----------------------------
+# DELEGATION BALANCE function
+#----------------------------
+_delegation_balance() {
+   prevdir=$(pwd)
+   cd $start_folder
+   [[ -f ${start_folder}/debts.json ]] && mv ${start_folder}/debts.json ${archive_folder}/debts.json.$(date +'%Y%M%d_%H%M%S')
+   
+   # Generate proportional rewards for 1A payment
+   echo "`date +"%Y%m%d_%H%M:%S"` - GENERATE DEBTS.JSON - to calculate delegation total from" >> $log_file
+   echo "Y" | encoins --reward 1 >> $log_file
+   if [ ! -f ${start_folder}/debts.json ]; then
+      echo "failed calc"
+   else
+      known_delegation_share=$(paste -d " " -- <(echo "$(cat debts.json | jq -r .[][0].addressCredential.contents.getPubKeyHash)") <(echo "$(cat debts.json | jq -r .[][1].getLovelace)") | grep $known_delegation_pkh | awk '{ print $2 }')
+      #echo $known_delegation_share
+      echo "`date +"%Y%m%d_%H%M:%S"` - DELGATION CALC PUBKEYHASH: `echo $known_delegation_pkh | cut -c1-5`*" >> $log_file
+      echo "`date +"%Y%m%d_%H%M:%S"` - DELGATION CALC KNOWNBAL:   $known_delegation_bal" >> $log_file
+      echo "`date +"%Y%m%d_%H%M:%S"` - DELGATION CALC PROPORTN:   $known_delegation_share" >> $log_file
+      deleg_total=`echo 1000000/$known_delegation_share*$known_delegation_bal | bc -l | awk -F. '{ print $1 }'`
+      echo $deleg_total
+   fi
+   cd ${prevdir}
+}
+
+
 #----------------------
 # INITIALISATION CHECKS
 #----------------------
@@ -175,8 +229,8 @@ nodeurl=$(cat ${start_folder}/relayConfig.json | jq -r '.delegation_ip') && echo
 #-------------------------
 # verify auto update status acceptable value
 echo "`date +"%Y%m%d_%H%M:%S"` - ENABLE AUTO-UPDATE VALUE: ${enable_auto_update}" >> $log_file
-# Exit if not valid value
-[[ "${enable_auto_update}" != [nmy] ]] && _pushmessage "${apitoken}" "${usrtoken}" "$(echo "ENCOINS EXIT\nAUTOUPDATE=${enable_auto_update}\nONLY y,n,m ALLOWED\n${nodename}\n Box: `uname -n`")" \
+# Exit if not valid value TODO - YES DISABLED 202808 v1.2.6
+[[ "${enable_auto_update}" != [nm] ]] && _pushmessage "${apitoken}" "${usrtoken}" "$(echo "ENCOINS EXIT\nAUTOUPDATE=${enable_auto_update}\nONLY y,n,m ALLOWED\n${nodename}\n Box: `uname -n`")" \
     && sleep 3 && exit
 # Service specified, check it aligns
 if [ ! -z $servicename ]; then
