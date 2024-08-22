@@ -9,8 +9,9 @@
    * For now user variable for update type set to "m" - manual => will notify if there is a new binary but not install it
 
 ## OVERVIEW
-* Box has been 100% on autopilot for 6months while no encoins node updates - required zero intervention
+* Box has been 100% on autopilot for 6months while no encoins node updates using the [patcher](../../patcher) script - required zero intervention
 * a few messages as it patches/reboots itself + would have notified immediately if logged onto
+* definitely a use at own risk script but has a bunch of user defined variables to hopefully adapt a bit if needed
 * 202408 - added delegation amount into messages thanks to Carrotshade :-)
 
 <br><br>
