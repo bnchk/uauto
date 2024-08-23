@@ -39,6 +39,7 @@
 #      - Get delegation amount using carrotshades technique
 #      - v1.2.6 required new folders /home/encs/encoins/config ==>> /home/encs/encoins/mainnet/apps/encoins
 #                                    /home/encs/encoins/bin    ==>> /home/encs/.local/bin
+# v0.6.3 - turn off delegation calculation until implications with payments understood
 
 #-----
 # TODO - Put delegation over/under into status message at top, eg START OK-> STARTUP UNDEL/STARTUP OVERDEL, maybe when v2 comes out
@@ -88,25 +89,27 @@ _pushmessage() {
         [ $# -eq 4 ] && priority="${4}" || priority=0
 
 		#INSERT DELEGATION BALANCE INTO MESSAGE
-        delbal=$(_delegation_balance)
-        if [[ $delbal =~ [^[:digit:]] ]]; then
-            delbal="failed calc"
-        else
-            if [[ $delbal -lt 100000 ]]; then
-                dispbal="UNDER ${delbal}!"
-                delbalpriority=1
-            elif [[ $delbal -gt 110000 ]]; then
-                dispbal="OVER ${delbal}!"
-                delbalpriority=1
-            else
-                dispbal="OK $delbal"
-                delbalpriority=0
-            fi
-        fi
+        # v0.6.2 disabled for now
+		#delbal=$(_delegation_balance)
+        #if [[ $delbal =~ [^[:digit:]] ]]; then
+        #    delbal="failed calc"
+        #else
+        #    if [[ $delbal -lt 100000 ]]; then
+        #        dispbal="UNDER ${delbal}!"
+        #        delbalpriority=1
+        #    elif [[ $delbal -gt 110000 ]]; then
+        #        dispbal="OVER ${delbal}!"
+        #        delbalpriority=1
+        #    else
+        #        dispbal="OK $delbal"
+        #        delbalpriority=0
+        #    fi
+        #fi
+        dispbal="disabled"
 
         # IS DELEGATION BALANCE PRIORITY HIGHER?
         [ $delbalpriority -gt $priority ] && priority=$delbalpriority
-		pushmessage="${pushmessage}\nDelegatn: ${dispbal}"
+		pushmessage="${pushmessage}\nDeleg Bal: ${dispbal}"
         echo "`date +"%Y%m%d_%H%M:%S"` - MSGLOG: ${pushmessage}" >> $log_file
         # construct push so it will timeout/never fail, reliant on external process
         # and don't want job to hang or crash for any reason beyond my control
