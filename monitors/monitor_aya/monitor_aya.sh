@@ -29,15 +29,19 @@
 #========
 # v0.1 - use minecraft server as base
 # v0.2 - first version
-# v0.2b- disable running twice check, not stable
+# v0.3 - bugfix - reset messages after into error state
+#      - commented out check for already running, not reliable
 
 
 #========
 # TO DO
 #========
+# - stop second message after bootup, supress if time gap less, or on startup set last sent dttm or something
 # - maybe after stable, add auto chain restart when issues detected + visudo the script in safe spot
 #   but need familiarity with what is done manually to fix varying scenarios first
 # - check system memory usage/disk usage
+# - delete from log after a size limit, maybe keep startup records (could put in text pipe box, then delete anything without pipe symbol up to some size/line count)
+# - maybe add hourly silent messaging
 
 
 #=============
@@ -260,6 +264,7 @@ while true; do
             # send now as first state change since error
             pushmessage="${msgheader} NOW OK\nBox: `uname -n`\nChainstate: ${chainstate}\nPeers: ${peers}\nTip at: ${tip_curr}\nTip move=${tip_move}\nError passed!\nUser: $(whoami)"
             f_pushmessage "${apitoken}" "${usrtoken}" "${pushmessage}" "${priority_std}"
+            last_msg_state="ok"
         else
             # has daily check/message been sent yet?
             curr_hhmm=$(date +%_H%M)
@@ -283,4 +288,3 @@ while true; do
     fi    
     sleep $seconds_sleep_loop
 done
-
